@@ -87,3 +87,27 @@ get_genome_aliases_list_wo_snpeff()
 
 	echo "${GENOME_ALIASES_LIST[@]}"
 }
+
+#-------------------------------------------------------------------------
+# Function : exit_on_error err msg status log 
+# Purpose  : check if current process has to exit when checking for exit status, if different of 0 exits with error msg send to log with err file reference for details
+exit_on_error()
+{
+	err=$1
+	msg=$2
+	status=$3
+	log=$4
+	tag=$5
+	recipient=$6
+	if [[ "$status" -ne 0 ]]; then
+		echo -e "$(date '+%Y_%m_%d %T') $msg" | tee -a $err 2>&1 | [[ -n $log ]] && tee -a $log 2>&1
+		echo -e "$(date '+%Y_%m_%d %T') [Pipeline error] Exits the pipeline, with error code $status." | tee -a $err 2>&1 | [[ -n $log ]] && tee -a $log 2>&1
+		echo -e "$(date '+%Y_%m_%d %T') [Pipeline error] Tail error output:" | [[ -n $log ]] && tee -a $log 2>&1
+		echo -e "... $(tail -n 10 $err)" 2>&1 | [[ -n $log ]] && tee -a $log 2>&1
+    	echo -e "$(date '+%Y_%m_%d %T') [Pipeline error] More details can be found in $err." | [[ -n $log ]] && tee -a $log 2>&1
+		# send an email
+		proc_error_msg="$tag process error: $msg\nExit status: $status\nMore details can be found in $(readlink -f $err)\nLast error output:\n... $(tail -n 10 $err)"
+		[[ -n $recipient ]] && sendEmail $recipient "[$(basename ${0%.*})] $tag process error" "$proc_error_msg" 
+		exit $status
+	fi
+}

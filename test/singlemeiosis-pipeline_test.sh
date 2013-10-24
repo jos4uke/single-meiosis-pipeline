@@ -66,7 +66,7 @@ testFailedReadingUserConfigParams()
 #
 testFailedLoadingUserConfigParams()
 {
-    prefix="varco"
+    prefix="singlemeiosis"
     for cfg in $(get_config_sections $PIPELINE_DEFAULT_CONFIG); do
 	echo -e "--- Config section [${cfg}] ---"
 	unset $(set | awk -F= -v cfg="${cfg}" -v prefix="${prefix}" 'BEGIN { 
