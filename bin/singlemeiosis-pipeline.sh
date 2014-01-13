@@ -300,11 +300,12 @@ for cfg in $(get_config_sections $BACKUPED_CONFIG_FILE 2>$ERROR_TMP;); do
 	[[ "$rtrn" -ne 0 ]] && logger_fatal "$load_user_config_failed_msg"
 	exit_on_error "$ERROR_TMP" "$load_user_config_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
     logger_debug "--- Config section [${cfg}] ---"
-    unset $(set | awk -F= -v cfg="${cfg}" -v prefix="${NAMESPACE}" 'BEGIN { 
+    unset $(set |awk -F= -v cfg="${cfg}" -v prefix="${NAMESPACE}" 'BEGIN { 
           cfg = toupper(cfg);
           prefix = toupper(prefix);
+		  pattern = "\^" prefix "_" cfg "_" 
        }
-       /^prefix_cfg_/  { print $1 }' 2>$ERROR_TMP) $(toupper ${NAMESPACE}_${cfg}_) 2>>$ERROR_TMP
+       $0~pattern { print $1 }' 2>$ERROR_TMP ) 2>>$ERROR_TMP
 	rtrn=$?
 	[[ "$rtrn" -ne 0 ]] && logger_fatal "$load_user_config_failed_msg"
 	exit_on_error "$ERROR_TMP" "$load_user_config_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
@@ -425,7 +426,17 @@ logger_info "[Genome index path] ${papamama_bwa_index_path}=${!papamama_bwa_inde
 #==========================================
 
 # F1 & M1-4
+#TETRAD_SAMPLES=($(set | grep -e "^$(toupper ${NAMESPACE}_tetrad_samples_).*sample_name_alias=" | cut -d\= -f1 2>$ERROR_TMP))
 
+#TETRAD_SAMPLES=($(set |awk -F= -vcfg="tetrad_samples" -vpfx="${NAMESPACE}" -vsfx="sample_name_alias" 'BEGIN { 
+#          cfg = toupper(cfg);
+#          pfx = toupper(pfx);
+#			pattern = pfx "_" cfg "_\.\*_" sfx;
+#       }
+#       $0~pattern { print $1 }' 2>$ERROR_TMP))
+#for s in "${TETRAD_SAMPLES[@]}"; do
+#	echo -e "$s=${!s}"
+#done
 
 
 
