@@ -322,11 +322,10 @@ done
 logger_info "[Check config: session user config file] OK Session user config file, $BACKUPED_CONFIG_FILE, was loaded successfully."
 
 #==========================================
-# GENOMES PATH AND INDEXES CURRENT VERSION
+# GENOMES AND INDEX PATH
 #==========================================
 
 ## SET GENOME FASTA FILES PATH
-## SET GENOME TOOL INDEXES PATH RELATIVE TO CURRENT VERSION/TOOL
 
 ### set genome fasta paths for the papa and mama genomes
 declare -r genome_base_path=$(toupper ${NAMESPACE}_paths)_GENOMES_BASE_PATH
@@ -335,29 +334,34 @@ declare -r genome_base_path=$(toupper ${NAMESPACE}_paths)_GENOMES_BASE_PATH
 declare -r ga_papa=$(toupper ${NAMESPACE}_genome_alias )_papa
 eval "$(toupper ${NAMESPACE}_paths)_papa_fasta=${!genome_base_path}/${!ga_papa}/$(ls ${!genome_base_path}/${!ga_papa} | grep -e "${!ga_papa}\.m*fas*$")"
 
-# using a variable
+## call using a variable
 
-declare -r ga_papa_fasta=$(toupper ${NAMESPACE}_paths)_papa_fasta
-echo ${!ga_papa_fasta}
+#declare -r ga_papa_fasta=$(toupper ${NAMESPACE}_paths)_papa_fasta
+#echo ${!ga_papa_fasta}
 
-# or direct call
+## or direct call
 eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papa_fasta"
-
-#eval echo -e \$"$(toupper ${NAMESPACE}_bwa_aln)_k"
 
 ##### mama
 declare -r ga_mama=$(toupper ${NAMESPACE}_genome_alias )_mama
 eval "$(toupper ${NAMESPACE}_paths)_mama_fasta=${!genome_base_path}/${!ga_mama}/$(ls ${!genome_base_path}/${!ga_mama} | grep -e "${!ga_mama}\.m*fas*$")"
 
+# call directly
+eval echo -e \$"$(toupper ${NAMESPACE}_paths)_mama_fasta"
 
-#eval "$(toupper(${NAMESPACE}_paths))_mama_fasta=${$(toupper(${NAMESPACE}_paths)_GENOMES_BASE_PATH}/${$(toupper(${NAMESPACE}_genome_alias)_mama}/$(ls ${$(toupper(${NAMESPACE}_paths)_GENOMES_BASE_PATH}/${$(toupper(${NAMESPACE}_genome_alias)_mama} | grep -e ${$(toupper(${NAMESPACE}_genome_alias)_mama}\.m*fas*$)"
-#echo ${$(toupper(${NAMESPACE}_paths)_mama_fasta}
+## SET GENOME BWA INDEX PATH RELATIVE TO CURRENT VERSION/TOOL
 
-#### set current tool version indexes for the papamama genome
+#### set current tool version index for the papamama genome
+declare -r genome_index_path=$(toupper ${NAMESPACE}_paths)_INDEXES_BASE_PATH
+declare -r genome_bwa_path=$(toupper ${NAMESPACE}_paths)_BWA_INDEXES
+declare -r ga_papamama=$(toupper ${NAMESPACE}_genome_alias)_papamama
+ext="fas"
+eval "$(toupper ${NAMESPACE}_paths)_papamama_bwa_index=${!genome_index_path}/${!genome_bwa_path}/$(get_tool_version bwa)/${!ga_papamama}/${!ga_papamama}.$ext"
 
-##### bwa
-#eval "$(toupper(${NAMESPACE}_paths))_BWA_INDEXES_papamama=${$(toupper(${NAMESPACE}_paths_)BWA_INDEXES}/$(get_tool_version bwa)/${$(toupper(${NAMESPACE}_genome_alias))_papamama}/${$(toupper(${NAMESPACE}_genome_alias)_papamama}"
-#echo ${$(toupper(${NAMESPACE}_paths_)BWA_INDEXES_papamama}
+# call directly
+eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index"
+eval ls -lh \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index*"
+
 
 
 
