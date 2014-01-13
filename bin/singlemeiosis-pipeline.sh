@@ -261,9 +261,10 @@ else
 	echo "$(date '+%Y-%m-%d %T') [Log directory] OK $OUTPUT_DIR/$LOG_DIR directory was created sucessfully. Will write log files in this directory." | tee -a $ERROR_TMP 2>&1 | logger_info	
 fi
 
-#
-# Create the pipeline logger
-#
+#==================================
+# Enable the pipeline debug logger
+#==================================
+
 logger_addAppender debuggerF 
 appender_setType debuggerF FileAppender
 appender_file_setFile debuggerF $OUTPUT_DIR/$LOG_DIR/$DEBUGFILE
@@ -351,7 +352,7 @@ if [[ ! -s ${!ga_papa_fasta} ]]; then
 	logger_fatal "An error occured while setting genome alias sequence path for papa genome."
 	exit 1
 fi
-logger_debug "[Genome alias sequence path] ${ga_papa_fasta}=${!ga_papa_fasta}"
+logger_info "[Genome alias sequence path] ${ga_papa_fasta}=${!ga_papa_fasta}"
 
 # call papa directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papa_fasta"
@@ -370,7 +371,7 @@ if [[ ! -s ${!ga_mama_fasta} ]]; then
 	logger_fatal "An error occured while setting genome alias sequence path for mama genome."
 	exit 1
 fi
-logger_debug "[Genome alias sequence path] ${ga_mama_fasta}=${!ga_mama_fasta}"
+logger_info "[Genome alias sequence path] ${ga_mama_fasta}=${!ga_mama_fasta}"
 
 # call mama directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_mama_fasta"
@@ -406,7 +407,12 @@ if [[ -z ${!papamama_bwa_index_path} ]]; then
 	logger_fatal "An error occured while setting genome bwa index path variable for the papamama genome."
 	exit 1
 fi
-logger_debug "[Genome index path] ${papamama_bwa_index_path}=${!papamama_bwa_index_path}"
+IDX_FILES=($(ls ${!papamama_bwa_index_path}*))
+if [[ ${#IDX_FILES[@]} -le 0 ]]; then
+	logger_fatal "An error occured while checking genome bwa index files for the papamama genome."
+	exit 1
+fi
+logger_info "[Genome index path] ${papamama_bwa_index_path}=${!papamama_bwa_index_path}"
 
 # call directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index"
@@ -414,7 +420,11 @@ logger_debug "[Genome index path] ${papamama_bwa_index_path}=${!papamama_bwa_ind
 #eval ls -lh \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index*"
 
 
+#==========================================
+# TETRAD SAMPLES
+#==========================================
 
+# F1 & M1-4
 
 
 
