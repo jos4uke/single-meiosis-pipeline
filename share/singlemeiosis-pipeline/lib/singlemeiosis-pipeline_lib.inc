@@ -88,6 +88,24 @@ get_genome_aliases_list_wo_snpeff()
 	echo "${GENOME_ALIASES_LIST[@]}"
 }
 
+#---------------------------------------------------------
+# Function: get_genome_aliases_list_w_bwa config_file
+# Purpose: Get the genome aliases list having one fasta file and bwa index 
+#
+get_genome_aliases_list_w_bwa()
+{
+	local PIPELINE_USER_CONFIG_FILE=$1
+	
+	local GENOMES_BASE_PATH=$(grep -e "^GENOMES_BASE_PATH=" $PIPELINE_USER_CONFIG_FILE | awk -F"=" '{print $2}')
+	local INDEXES_BASE_PATH=$(grep -e "^INDEXES_BASE_PATH=" $PIPELINE_USER_CONFIG_FILE | awk -F"=" '{print $2}')
+	eval "local BWA_INDEXES=$(grep -e "^BWA_INDEXES=" $PIPELINE_USER_CONFIG_FILE | awk -F"=" '{print $2}')"
+
+	local genomes_list_fasta=($(get_genomes_dir_list_with_one_fasta ${GENOMES_BASE_PATH} 2>/dev/null))
+	local GENOME_ALIASES_LIST=($(get_genomes_list_with_bwa_index ${BWA_INDEXES}/$(get_tool_version "bwa") "${genomes_list_fasta[@]}" 2>/dev/null))
+
+	echo "${GENOME_ALIASES_LIST[@]}"
+}
+
 #-------------------------------------------------------------------------
 # Function : exit_on_error err msg status log 
 # Purpose  : check if current process has to exit when checking for exit status, if different of 0 exits with error msg send to log with err file reference for details

@@ -101,7 +101,6 @@ testFailedLoadingUserConfigParams()
 testGetGenomeAliasesListWoSnpeff()
 {
 	genomes_aliases_list=($(get_genome_aliases_list_wo_snpeff $PIPELINE_DEFAULT_CONFIG 2>${stderrF} | tee ${stdoutF}))
-
 	echo "${genomes_aliases_list[@]}" 
     for ga in "${genomes_aliases_list[@]}"
     do
@@ -112,6 +111,24 @@ testGetGenomeAliasesListWoSnpeff()
 	assertTrue "expected output to standard output" "[ -s ${stdoutF} ]"
 	assertTrue "expected non null genome aliases list" "[ ${#genomes_aliases_list[@]} -gt 0 ]"	
 }
+
+#----------------------------------
+# testGetGenomeAliasesListWithBwa
+
+testGetGenomeAliasesListWithBwa()
+{
+	genomes_aliases_list=($(get_genome_aliases_list_w_bwa $PIPELINE_DEFAULT_CONFIG 2>${stderrF} | tee ${stdoutF}))
+	echo "${genomes_aliases_list[@]}" 
+    for ga in "${genomes_aliases_list[@]}"
+    do
+	echo -e "genome alias: $ga"
+    done
+
+	assertTrue "unexpected output to standard error" "[ -n ${stderrF} ]"
+	assertTrue "expected output to standard output" "[ -s ${stdoutF} ]"
+	assertTrue "expected non null genome aliases list" "[ ${#genomes_aliases_list[@]} -gt 0 ]"	
+}
+
 
 #================
 
