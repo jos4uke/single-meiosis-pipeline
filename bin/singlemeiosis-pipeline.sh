@@ -334,20 +334,20 @@ declare -r genome_base_path=$(toupper ${NAMESPACE}_paths)_GENOMES_BASE_PATH
 declare -r ga_papa=$(toupper ${NAMESPACE}_genome_alias )_papa
 eval "$(toupper ${NAMESPACE}_paths)_papa_fasta=${!genome_base_path}/${!ga_papa}/$(ls ${!genome_base_path}/${!ga_papa} | grep -e "${!ga_papa}\.m*fas*$")"
 
-## call using a variable
+## call papa using a variable
 
 #declare -r ga_papa_fasta=$(toupper ${NAMESPACE}_paths)_papa_fasta
 #echo ${!ga_papa_fasta}
 
 ## or direct call
-eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papa_fasta"
+#eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papa_fasta"
 
 ##### mama
 declare -r ga_mama=$(toupper ${NAMESPACE}_genome_alias )_mama
 eval "$(toupper ${NAMESPACE}_paths)_mama_fasta=${!genome_base_path}/${!ga_mama}/$(ls ${!genome_base_path}/${!ga_mama} | grep -e "${!ga_mama}\.m*fas*$")"
 
-# call directly
-eval echo -e \$"$(toupper ${NAMESPACE}_paths)_mama_fasta"
+# call mama directly
+#eval echo -e \$"$(toupper ${NAMESPACE}_paths)_mama_fasta"
 
 ## SET GENOME BWA INDEX PATH RELATIVE TO CURRENT VERSION/TOOL
 
@@ -359,8 +359,9 @@ ext="fas"
 eval "$(toupper ${NAMESPACE}_paths)_papamama_bwa_index=${!genome_index_path}/${!genome_bwa_path}/$(get_tool_version bwa)/${!ga_papamama}/${!ga_papamama}.$ext"
 
 # call directly
-eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index"
-eval ls -lh \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index*"
+#eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index"
+# test
+#eval ls -lh \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index*"
 
 
 
