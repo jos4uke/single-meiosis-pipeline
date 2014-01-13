@@ -327,24 +327,50 @@ logger_info "[Check config: session user config file] OK Session user config fil
 
 ## SET GENOME FASTA FILES PATH
 
+logger_info "[Genome sequences and index paths] set path variables ..."
 ### set genome fasta paths for the papa and mama genomes
 declare -r genome_base_path=$(toupper ${NAMESPACE}_paths)_GENOMES_BASE_PATH
 
+if [[ -z ${!genome_base_path} && ! -d ${!genome_base_path} ]]; then 
+	logger_fatal "An error occured while setting genome base path variable."
+	exit 1
+fi
+logger_debug "[Genome base path] ${genome_base_path}=${!genome_base_path}"
+
 #### papa
 declare -r ga_papa=$(toupper ${NAMESPACE}_genome_alias )_papa
+if [[ -z ${!ga_papa} ]]; then 
+	logger_fatal "An error occured while setting genome alias variable for papa genome."
+	exit 1
+fi
+logger_debug "[Genome alias] ${ga_papa}=${!ga_papa}"
+
 eval "$(toupper ${NAMESPACE}_paths)_papa_fasta=${!genome_base_path}/${!ga_papa}/$(ls ${!genome_base_path}/${!ga_papa} | grep -e "${!ga_papa}\.m*fas*$")"
+declare -r ga_papa_fasta=$(toupper ${NAMESPACE}_paths)_papa_fasta
+if [[ ! -s ${!ga_papa_fasta} ]]; then 
+	logger_fatal "An error occured while setting genome alias sequence path for papa genome."
+	exit 1
+fi
+logger_debug "[Genome alias sequence path] ${ga_papa_fasta}=${!ga_papa_fasta}"
 
-## call papa using a variable
-
-#declare -r ga_papa_fasta=$(toupper ${NAMESPACE}_paths)_papa_fasta
-#echo ${!ga_papa_fasta}
-
-## or direct call
+# call papa directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papa_fasta"
 
 ##### mama
 declare -r ga_mama=$(toupper ${NAMESPACE}_genome_alias )_mama
+if [[ -z ${!ga_mama} ]]; then 
+	logger_fatal "An error occured while setting genome alias variable for mama genome."
+	exit 1
+fi
+logger_debug "[Genome alias] ${ga_mama}=${!ga_mama}"
+
 eval "$(toupper ${NAMESPACE}_paths)_mama_fasta=${!genome_base_path}/${!ga_mama}/$(ls ${!genome_base_path}/${!ga_mama} | grep -e "${!ga_mama}\.m*fas*$")"
+declare -r ga_mama_fasta=$(toupper ${NAMESPACE}_paths)_mama_fasta
+if [[ ! -s ${!ga_mama_fasta} ]]; then 
+	logger_fatal "An error occured while setting genome alias sequence path for mama genome."
+	exit 1
+fi
+logger_debug "[Genome alias sequence path] ${ga_mama_fasta}=${!ga_mama_fasta}"
 
 # call mama directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_mama_fasta"
@@ -353,10 +379,34 @@ eval "$(toupper ${NAMESPACE}_paths)_mama_fasta=${!genome_base_path}/${!ga_mama}/
 
 #### set current tool version index for the papamama genome
 declare -r genome_index_path=$(toupper ${NAMESPACE}_paths)_INDEXES_BASE_PATH
+if [[ -z ${!genome_index_path} ]]; then 
+	logger_fatal "An error occured while setting genome indexes path variable."
+	exit 1
+fi
+logger_debug "[Genome index path] ${genome_index_path}=${!genome_index_path}"
+
 declare -r genome_bwa_path=$(toupper ${NAMESPACE}_paths)_BWA_INDEXES
+if [[ -z ${!genome_bwa_path} ]]; then 
+	logger_fatal "An error occured while setting genome bwa indexes path variable."
+	exit 1
+fi
+logger_debug "[Genome index path] ${genome_bwa_path}=${!genome_bwa_path}"
+
 declare -r ga_papamama=$(toupper ${NAMESPACE}_genome_alias)_papamama
+if [[ -z ${!ga_papamama} ]]; then 
+	logger_fatal "An error occured while setting genome alias variable for the papamama genome."
+	exit 1
+fi
+logger_debug "[Genome alias] ${ga_papamama}=${!ga_papamama}"
+
 ext="fas"
 eval "$(toupper ${NAMESPACE}_paths)_papamama_bwa_index=${!genome_index_path}/${!genome_bwa_path}/$(get_tool_version bwa)/${!ga_papamama}/${!ga_papamama}.$ext"
+declare -r papamama_bwa_index_path=$(toupper ${NAMESPACE}_paths)_papamama_bwa_index
+if [[ -z ${!papamama_bwa_index_path} ]]; then 
+	logger_fatal "An error occured while setting genome bwa index path variable for the papamama genome."
+	exit 1
+fi
+logger_debug "[Genome index path] ${papamama_bwa_index_path}=${!papamama_bwa_index_path}"
 
 # call directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papamama_bwa_index"
