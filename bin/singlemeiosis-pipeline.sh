@@ -1344,11 +1344,128 @@ for s in "${SAMPLES_STACK[@]}"; do
 done
 logger_info "[Analysis] Wait for all samtools index processes to finish before proceed to next step."
 waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
-logger_info "[Analysis] All samtools index processes finished. Will proceed to next step: "
+logger_info "[Analysis] All samtools index processes finished. Will proceed to next step: compute per-base depth"
 PIDS_ARR=()
 
+#
+# PART III: Compute per-base depth
+#
+
+logger_info "[Analysis] Compute per-base depth"
+cmd1="samtools mpileup"
+cmd2="bcftools view"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR_PAPA=$OUTPUT_DIR/${!s}/${!s}_${!papa}_analysis_err.log
+	CURRENT_ANALYSIS_ERROR_MAMA=$OUTPUT_DIR/${!s}/${!s}_${!mama}_analysis_err.log
+
+	# papa
+	bamFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted.bam)
+
+	# build cli options
+	##	
+	samtools_mpileup_cli_options_papa=($(buildCommandLineOptions "$cmd1" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_PAPA))
+	rtrn=$?
+	sm_cli_options_failed_msg="[Analysis] An error occured while building the $cmd1 command line options for current sample ${!s} and $bamFP."
+	exit_on_error "$CURRENT_MAPPING_ERROR_PAPA" "$sm_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	opts_sm_papa="${samtools_mpileup_cli_options_papa[@]}"
+	logger_debug "[Analysis] $cmd1 options: ${opts_sm_papa}"
+	##
+	bcftools_view_cli_options_papa=($(buildCommandLineOptions "$cmd2" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_PAPA))
+	rtrn=$?
+	bv_cli_options_failed_msg="[Analysis] An error occured while building the $cmd2 command line options for current sample ${!s} and $bamFP."
+	exit_on_error "$CURRENT_MAPPING_ERROR_PAPA" "$bv_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	opts_bv_papa="${bcftools_view_cli_options_papa[@]}"
+	logger_debug "[Analysis] $cmd2 options: ${opts_bv_papa}"
+
+	# build cli
+	samtools_mpileup_cli_papa="$cmd1 ${opts_sm_papa} -f ${!ga_papa_fasta}"
+	bcftools_view_cli_papa="$cmd2 ${opts_bv_papa} -"
+	complete_papa_cli="${samtools_mpileup_cli_papa} | ${bcftools_view_cli_papa} >${bamFP%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_PAPA &"
+
+	# run the cli
+	logger_debug "[Analysis] $complete_papa_cli"
+	eval "$complete_papa_cli" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval $cmd1 and $$cmd2 cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] $cmd1 and $cmd2 pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	bamFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted.bam)
+
+	# build cli options
+	##	
+	samtools_mpileup_cli_options_mama=($(buildCommandLineOptions "$cmd1" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_MAMA))
+	rtrn=$?
+	sm_cli_options_failed_msg="[Analysis] An error occured while building the $cmd1 command line options for current sample ${!s} and $bamFM."
+	exit_on_error "$CURRENT_MAPPING_ERROR_MAMA" "$sm_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	opts_sm_mama="${samtools_mpileup_cli_options_mama[@]}"
+	logger_debug "[Analysis] $cmd1 options: ${opts_sm_mama}"
+	##
+	bcftools_view_cli_options_mama=($(buildCommandLineOptions "$cmd2" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_MAMA))
+	rtrn=$?
+	bv_cli_options_failed_msg="[Analysis] An error occured while building the $cmd2 command line options for current sample ${!s} and $bamFM."
+	exit_on_error "$CURRENT_MAPPING_ERROR_MAMA" "$bv_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	opts_bv_mama="${bcftools_view_cli_options_mama[@]}"
+	logger_debug "[Analysis] $cmd2 options: ${opts_bv_mama}"
+
+	# build cli
+	samtools_mpileup_cli_mama="$cmd1 ${opts_sm_mama} -f ${!ga_mama_fasta}"
+	bcftools_view_cli_mama="$cmd2 ${opts_bv_mama} -"
+	complete_mama_cli="${samtools_mpileup_cli_mama} | ${bcftools_view_cli_mama} >${bamFM%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_PAPA &"
+
+	# run the cli
+	logger_debug "[Analysis] $complete_mama_cli"
+	eval "$complete_mama_cli" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval $cmd1 and $$cmd2 cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] $cmd1 and $cmd2 pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all $cmd1 and $cmd2 processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All $cmd1 and $cmd2 processes finished. Will proceed to next step: reformat variant file"
+PIDS_ARR=()
+
+# Remove first three header lines
+logger_info "[Analysis] Remove the first three lines from vcf file."
+vcf_files=$(find $OUTPUT_DIR -name "*.vcf")
+for vcf in "${vcf_files[@]}"; does
+	logger_debug "[Analysis] Current vcf file: $vcf"
+	sed -i '1,3d' $vcf
+done
+
+# Reformat vcf files
+logger_info "[Analysis] Reformat vcf files."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR_PAPA=$OUTPUT_DIR/${!s}/${!s}_${!papa}_analysis_err.log
+	CURRENT_ANALYSIS_ERROR_MAMA=$OUTPUT_DIR/${!s}/${!s}_${!mama}_analysis_err.log
+
+	# papa
+	vcf_papa=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted.vcf)
+	awk '{print $1 ";" $2 ";" $4 ";" $8}' $vcf_papa | awk -F ";|=|," '{print $1 "\t" $2 "\t" $3 "\t" $7+$8 "\t" $11 "\t" $15}' > ${vcf_papa%.*}_reformated.vcf
+
+	# mama
+	vcf_mama=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted.vcf)
+	awk '{print $1 ";" $2 ";" $4 ";" $8}' $vcf_mama | awk -F ";|=|," '{print $1 "\t" $2 "\t" $3 "\t" $7+$8 "\t" $11 "\t" $15}' > ${vcf_mama%.*}_reformated.vcf
+done
 
 
+# TODO: Dispatch per chromosomes
 
 # Clean analysis tmp files
 logger_info "[Analysis] Clean tmp files"
@@ -1358,17 +1475,12 @@ find $OUTPUT_DIR -name "*.tmp" -delete
 logger_info "[Analysis] All tmp files removal completed."
 
 
-
-
-
-
-
 # close all appenders
 appender_exists stderr && appender_close stderr
 appender_exists console && appender_close console
 appender_exists debuggerF && appender_close debuggerF
 
-
+exit 0
 
 
 
