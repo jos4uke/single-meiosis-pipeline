@@ -59,6 +59,10 @@ ERROR_TMP="/tmp/$(basename ${0%.*})_error_${SESSION_TAG}.log"
 
 [[ $VERSION -eq "dev" ]] && PROG_PATH=$(realpath $(dirname $0));PIPELINE_USER_CONFIG=${PROG_PATH}/../share/singlemeiosis-pipeline/etc/singlemeiosis-pipeline_user.config || PIPELINE_USER_CONFIG=/usr/local/share/singlemeiosis-pipeline/etc/singlemeiosis-pipeline_user.config
 
+PIDS_ARR=()
+WAITALL_TIMEOUT=259200
+WAITALL_INTERVAL=60
+WAITALL_DELAY=60
 
 ### LOGGING CONFIGURATION ###
 
@@ -401,7 +405,7 @@ if [[ -z ${!ga_papamama} ]]; then
 fi
 logger_debug "[Genome alias] ${ga_papamama}=${!ga_papamama}"
 
-ext="fas"
+ext="fas" # TODO: remove fas extension from index files, keep only genome alias
 eval "$(toupper ${NAMESPACE}_paths)_papamama_bwa_index=${!genome_index_path}/${!genome_bwa_path}/$(get_tool_version bwa)/${!ga_papamama}/${!ga_papamama}.$ext"
 declare -r papamama_bwa_index_path=$(toupper ${NAMESPACE}_paths)_papamama_bwa_index
 if [[ -z ${!papamama_bwa_index_path} ]]; then 
@@ -473,6 +477,144 @@ else
 		logger_info "$sk=${!sk}"
 	done	
 fi
+
+#==========================================
+# MAPPING
+#==========================================
+
+logger_info "[Mapping] Run bwa on stack samples."
+mapping_cmd=
+# bwa aln
+mapping_cmd="bwa aln"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Mapping] Run bwa aln on stack samples."
+	logger_info "[Mapping] Current sample: ${!s}"
+	# create the sample output dir $OUTPUT_DIR/${!s}
+	if [[ ! -d $OUTPUT_DIR/${!s} ]]; then	
+		mkdir $OUTPUT_DIR/${!s} 2>$ERROR_TMP; rtrn=$?
+		if [[ $rtrn -ne 0 ]]; then 
+			mkdir_err_msg="[Mapping] An error occured while creating $OUTPUT_DIR/${!s} directory."
+			logger_fatal "$mkdir_err_msg"
+			exit_on_error "$ERROR_TMP" "$mkdir_err_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	fi
+	logger_info "[Mapping] bwa will output files in $OUTPUT_DIR/${!s} directory." 
+
+	# fastq files
+	sid=$(echo $s | awk -F"_" '{print $4}')
+	logger_debug "sample id: $sid"
+	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))
+
+	for seqF in "${seqFR[@]}"; do
+		logger_debug "[MAPPING] Current fastq file: ${!seqF}"
+		# error logging
+		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!seqF}_mapping_err.log
+
+		# build cli options
+		bwa_aln_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
+		rtrn=$?
+		cli_options_failed_msg="[MAPPING] An error occured while building the $mapping_cmd command line options for current sample ${!s} and current fastq file ${!seqF}."
+		exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		opts="${bwa_aln_cli_options[@]}"
+		logger_debug "[MAPPING] $mapping_cmd options: $opts"
+
+		# build cli
+		bwa_aln_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!seqF} >$OUTPUT_DIR/${!s}/${!seqF%.*}.sai 2>$CURRENT_MAPPING_ERROR &"
+
+		# run the cli
+		logger_debug "[MAPPING] $bwa_aln_cli"
+		eval "$bwa_aln_cli" 2>$ERROR_TMP
+		pid=$!
+		rtrn=$?
+		eval_failed_msg="[MAPPING] An error occured while eval $mapping_cmd cli."
+		exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		logger_debug "[MAPPING] $mapping_cmd pid: $pid"
+
+		# add pid to array
+		PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+	done
+done
+
+# wait until all bwa aln processes to finish then proceed to next step
+# reinit pid array
+pid_list_failed_msg="[MAPPING] Failed getting process status for process $p."	
+for p in "${PIDS_ARR[@]}"; do
+	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	rtrn=$?
+	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+done
+logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: bwa sampe."
+PIDS_ARR=()
+
+# bwa sampe
+mapping_cmd="bwa sampe"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Mapping] Run bwa aln on stack samples."
+	logger_info "[Mapping] Current sample: ${!s}"
+	
+	# fastq files
+	sid=$(echo $s | awk -F"_" '{print $4}')
+	logger_debug "sample id: $sid"
+	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))	
+
+	# sai files
+	saiFR=($(ls $OUTPUT_DIR/${!s}/*.sai))
+	if [[ -s  ${saiFR[0]} && -s ${saiFR[1]} ]]; then
+		logger_info "The given pair of sai files does exist for the current sample ${!s}."
+	else
+		[[ ! -s "${saiFR[0]}" ]] && logger_warn "${saiFR[0]} file does not exist or is empty."
+		[[ ! -s "${saiFR[1]}" ]] && logger_warn "${saiFR[1]} file does not exist or is empty."
+		logger_warn "No pair of sai files does exist for the current sample ${!s}."
+		logger_fatal "Exit the pipeline."
+		exit 1;
+	fi
+
+	# error logging
+	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!seqF}_mapping_err.log
+
+	# build cli options
+	bwa_sampe_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
+	rtrn=$?
+	cli_options_failed_msg="[MAPPING] An error occured while building the $mapping_cmd command line options for current sample ${!s}."
+	exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	opts="${bwa_sampe_cli_options[@]}"
+	logger_debug "[MAPPING] $mapping_cmd options: $opts"
+	
+	# build cli
+	bwa_sampe_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!saiFR[0]} ${!saiFR[1]} ${!seqFR[0]} ${!seqFR[1]} >$OUTPUT_DIR/${!s}/${!s}_${!ga_papamama}.sam 2>$CURRENT_MAPPING_ERROR &"
+
+	# run the cli
+	logger_debug "[MAPPING] $bwa_sampe_cli"
+	eval "$bwa_sampe_cli" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[MAPPING] An error occured while eval $mapping_cmd cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[MAPPING] $mapping_cmd pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+
+# wait until all bwa sampe processes to finish then proceed to next step
+# reinit pid array
+pid_list_failed_msg="[MAPPING] Failed getting process status for process $p."	
+for p in "${PIDS_ARR[@]}"; do
+	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	rtrn=$?
+	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+done
+logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: Filtering."
+PIDS_ARR=()
+
+
+
+
+
+
 
 
 
