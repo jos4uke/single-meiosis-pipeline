@@ -507,7 +507,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	for seqF in "${seqFR[@]}"; do
 		logger_debug "[Mapping] Current fastq file: ${!seqF}"
 		# error logging
-		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!seqF}_mapping_err.log
+		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/$(basename ${!seqF})_mapping_err.log
 
 		# build cli options
 		bwa_aln_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
@@ -518,7 +518,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Mapping] $mapping_cmd options: $opts"
 
 		# build cli
-		bwa_aln_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!seqF} >$OUTPUT_DIR/${!s}/${!seqF%.*}.sai 2>$CURRENT_MAPPING_ERROR &"
+		bwa_aln_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!seqF} >$OUTPUT_DIR/${!s}/$(basename ${!seqF%.*}).sai 2>$CURRENT_MAPPING_ERROR &"
 
 		# run the cli
 		logger_debug "[Mapping] $bwa_aln_cli"
