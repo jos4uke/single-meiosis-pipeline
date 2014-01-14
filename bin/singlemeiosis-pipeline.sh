@@ -761,6 +761,96 @@ find $OUTPUT_DIR -name "*_mapped.sam" -delete
 logger_info "[Filtering] All tmp files removal completed."
 
 
+#==========================================
+# ANALYSIS
+#==========================================
+
+# bam conversion
+logger_info "[Analysis] Apply bam conversion"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_uniqMatch.sam)
+
+	eval "samtools view -bS ${samF} >${samF%.*}.bam 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools view processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools view processes finished. Will proceed to next step: bam sorting"
+PIDS_ARR=()
+
+# sort bam
+logger_info "[Analysis] Apply bam sorting"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
+
+	bamF=$(ls $OUTPUT_DIR/${!s}/*.bam)
+
+	eval "samtools sort ${bamF} ${bamF%.*}_sorted 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools sort pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools sort processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools sort processes finished. Will proceed to next step: bam indexing"
+PIDS_ARR=()
+
+# index bam
+logger_info "[Analysis] Apply bam indexing"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
+
+	bamF=$(ls $OUTPUT_DIR/${!s}/*_sorted.bam)
+
+	eval "samtools index ${bamF} ${bamF}.bai 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools sort pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools sort processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools sort processes finished. Will proceed to next step: bam indexing"
+PIDS_ARR=()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
