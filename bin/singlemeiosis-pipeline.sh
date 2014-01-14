@@ -680,8 +680,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 done
 
-# filter non unique match
-logger_info "[Filtering] Filter non unique matches: extract header"
+# Extract header
+logger_info "[Filtering] Extract header"
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
@@ -689,10 +689,10 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
-	eval "samtools view -H -S $samF >${samF%.*}_uniqMatch.sam.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	eval "samtools view -H -S $samF >${samF}.hdr.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
-	eval_failed_msg="[Filtering] An error occured while eval get_mapped_reads cli."
+	eval_failed_msg="[Filtering] An error occured while eval samtools view cli."
 	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	logger_debug "[Filtering] samtools view pid: $pid"
 
@@ -704,7 +704,9 @@ waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
 logger_info "[Filtering] All samtools view processes finished. Will proceed to next filtering step."
 PIDS_ARR=()
 
-logger_info "[Filtering] Filter non unique matches: apply filter"
+# filter on MAPQ minimum value
+logger_info "[Filtering] Filter on MAPQ threshold"
+declare -r mapq_th=$(toupper ${NAMESPACE}_filtering)_MAPQ_min
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
@@ -712,7 +714,31 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
-	eval "get_unique_matches $samF >>${samF%.*}_uniqMatch.sam.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	eval "filter_on_mapq $samF ${!mapq_th} >${samF%.*}_MAPQ.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval filter_on_mapq cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] filter_on_mapq pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Filtering] Wait for all filter_on_mapq processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All filter_on_mapq processes finished. Will proceed to next filtering step."
+PIDS_ARR=()
+
+# filter non unique hit
+logger_info "[Filtering] Filter non unique hit"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_MAPQ.tmp)
+	eval "get_unique_matches $samF >>${samF%.*}_X0.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval get_unique_matches cli."
@@ -727,27 +753,77 @@ waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
 logger_info "[Filtering] All get_unique_matches processes finished. Will proceed to next filtering step."
 PIDS_ARR=()
 
-logger_info "[Filtering] Filter non unique matches: rename tmp to sam"
+# filter mismatched alignments
+logger_info "[Filtering] Filter mismatched alignments"
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
 	# error logging
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
-	samF=$(ls $OUTPUT_DIR/${!s}/*_uniqMatch.sam.tmp)
-	eval "mv $samF ${samF%.*} 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	samF=$(ls $OUTPUT_DIR/${!s}/*_X0.tmp)
+	eval "get_no_mismatched_aln $samF >>${samF%.*}_XM.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
-	eval_failed_msg="[Filtering] An error occured while eval mv cli."
+	eval_failed_msg="[Filtering] An error occured while eval get_no_mismatched_aln cli."
 	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-	logger_debug "[Filtering] mv pid: $pid"
+	logger_debug "[Filtering] get_no_mismatched_aln pid: $pid"
 
 	# add pid to array
 	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
 done
-logger_info "[Filtering] Wait for all mv processes to finish before proceed to next step."
+logger_info "[Filtering] Wait for all get_no_mismatched_aln processes to finish before proceed to next step."
 waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
-logger_info "[Filtering] All mv processes finished. Will proceed to next step: cleaning"
+logger_info "[Filtering] All get_no_mismatched_aln processes finished. Will proceed to next filtering step."
+PIDS_ARR=()
+
+# filter gapped alignments
+logger_info "[Filtering] Filter gapped alignments"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_XM.tmp)
+	eval "get_no_gapped_aln $samF >>${samF%.*}_Xo.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval get_no_gapped_aln cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] get_no_gapped_aln pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Filtering] Wait for all get_no_gapped_aln processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All get_no_gapped_aln processes finished. Will proceed to next filtering step."
+PIDS_ARR=()
+
+# concat header and filtered alignments
+logger_info "[Filtering] Concat header and filtered alignments"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
+
+	samH=$(ls $OUTPUT_DIR/${!s}/*.hdr.tmp)
+	samF=$(ls $OUTPUT_DIR/${!s}/*_XM.tmp)
+	eval "cat $samH $samF > ${samF%.*}.sam 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval cat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] cat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Filtering] Wait for all cat processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All cat processes finished. Will proceed to next step: cleaning"
 PIDS_ARR=()
 
 # Clean Filtering
@@ -758,6 +834,9 @@ find $OUTPUT_DIR -name "*.${!ga_papamama}.sam" -delete
 logger_debug "[Filtering] Remove all *_mapped.sam files:"
 logger_debug "$(find $OUTPUT_DIR -name "*_mapped.sam")"
 find $OUTPUT_DIR -name "*_mapped.sam" -delete
+logger_debug "[Filtering] Remove all *.tmp files:"
+logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
+find $OUTPUT_DIR -name "*.hdr" -delete
 logger_info "[Filtering] All tmp files removal completed."
 
 
