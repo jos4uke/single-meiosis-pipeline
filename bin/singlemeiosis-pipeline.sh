@@ -425,19 +425,54 @@ logger_info "[Genome index path] ${papamama_bwa_index_path}=${!papamama_bwa_inde
 # TETRAD SAMPLES
 #==========================================
 
-# F1 & M1-4
-#TETRAD_SAMPLES=($(set | grep -e "^$(toupper ${NAMESPACE}_tetrad_samples_).*sample_name_alias=" | cut -d\= -f1 2>$ERROR_TMP))
+# F1 & M1-4, etc.
+tscs="tetrad_samples"
+TETRAD_SAMPLES=($(set |awk -F= -vcfg="${tscs}" -vpfx="${NAMESPACE}" -vsfx="sample_name_alias" 'BEGIN { 
+          cfg = toupper(cfg);
+          pfx = toupper(pfx);
+			pattern = pfx "_" cfg "_\.\*_" sfx;
+       }
+       $0~pattern { print $1 }' 2>$ERROR_TMP))
+logger_info "[Tetrad samples] ${#TETRAD_SAMPLES[@]} samples in $tscs section loaded from config file."
 
-#TETRAD_SAMPLES=($(set |awk -F= -vcfg="tetrad_samples" -vpfx="${NAMESPACE}" -vsfx="sample_name_alias" 'BEGIN { 
-#          cfg = toupper(cfg);
-#          pfx = toupper(pfx);
-#			pattern = pfx "_" cfg "_\.\*_" sfx;
-#       }
-#       $0~pattern { print $1 }' 2>$ERROR_TMP))
-#for s in "${TETRAD_SAMPLES[@]}"; do
-#	echo -e "$s=${!s}"
-#done
+logger_info "[Tetrad samples] check for sequence files for each tetrad sample"
+SAMPLES_STACK=()
+SKIPPED=()
+for s in "${TETRAD_SAMPLES[@]}"; do
+	logger_debug "$s=${!s}"
+	sid=$(echo $s | awk -F"_" '{print $4}')
+	logger_debug "sample id: $sid"
+	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))
+	logger_debug "${seqFR[0]}=${!seqFR[0]}"
+	logger_debug "${seqFR[1]}=${!seqFR[1]}"
+	if [[ -s  ${!seqFR[0]} && -s ${!seqFR[1]} ]]; then
+		logger_info "The given pair of fastq files does exist for the current sample ${!s}. Add the sample to the stack."
+		SAMPLES_STACK=("${SAMPLES_STACK[@]}" "$s")
+	else
+		[[ ! -s "${!seqFR[0]}" ]] && logger_warn "${seqFR[0]}=${!seqFR[0]} file does not exist or is empty."
+		[[ ! -s "${!seqFR[1]}" ]] && logger_warn "${seqFR[1]}=${!seqFR[1]} file does not exist or is empty."
+		logger_warn "No pair of fastq files does exist for the current sample ${!s}. Skip this sample as it will not be added to the stack."
+		SKIPPED=("${SKIPPED[@]}" "$s")
+	fi
+done
 
+if [[ "${#SAMPLES_STACK}" -eq 0 ]]; then
+	logger_warn "The samples stack is empty."
+	logger_warn "All the samples were skipped."
+	logger_debug "Skipped samples: ${SKIPPED[@]}"
+	logger_info "Exit the pipeline."
+	exit 0
+else
+	logger_info "The samples stack contains ${#SAMPLES_STACK[@]} samples to be processed."
+	logger_info "Samples in the stack:"
+	for s in "${SAMPLES_STACK[@]}"; do
+		logger_info "$s=${!s}"
+	done
+	logger_info "Samples skipped:"
+	for sk in "${SKIPPED[@]}"; do
+		logger_info "$sk=${!sk}"
+	done	
+fi
 
 
 
