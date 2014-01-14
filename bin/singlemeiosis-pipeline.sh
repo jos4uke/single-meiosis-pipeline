@@ -481,9 +481,9 @@ fi
 #==========================================
 # MAPPING
 #==========================================
-
 logger_info "[Mapping] Run bwa on stack samples."
 mapping_cmd=
+
 # bwa aln
 mapping_cmd="bwa aln"
 for s in "${SAMPLES_STACK[@]}"; do
@@ -505,29 +505,29 @@ for s in "${SAMPLES_STACK[@]}"; do
 	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))
 
 	for seqF in "${seqFR[@]}"; do
-		logger_debug "[MAPPING] Current fastq file: ${!seqF}"
+		logger_debug "[Mapping] Current fastq file: ${!seqF}"
 		# error logging
 		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!seqF}_mapping_err.log
 
 		# build cli options
 		bwa_aln_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
 		rtrn=$?
-		cli_options_failed_msg="[MAPPING] An error occured while building the $mapping_cmd command line options for current sample ${!s} and current fastq file ${!seqF}."
+		cli_options_failed_msg="[Mapping] An error occured while building the $mapping_cmd command line options for current sample ${!s} and current fastq file ${!seqF}."
 		exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 		opts="${bwa_aln_cli_options[@]}"
-		logger_debug "[MAPPING] $mapping_cmd options: $opts"
+		logger_debug "[Mapping] $mapping_cmd options: $opts"
 
 		# build cli
 		bwa_aln_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!seqF} >$OUTPUT_DIR/${!s}/${!seqF%.*}.sai 2>$CURRENT_MAPPING_ERROR &"
 
 		# run the cli
-		logger_debug "[MAPPING] $bwa_aln_cli"
+		logger_debug "[Mapping] $bwa_aln_cli"
 		eval "$bwa_aln_cli" 2>$ERROR_TMP
 		pid=$!
 		rtrn=$?
-		eval_failed_msg="[MAPPING] An error occured while eval $mapping_cmd cli."
+		eval_failed_msg="[Mapping] An error occured while eval $mapping_cmd cli."
 		exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-		logger_debug "[MAPPING] $mapping_cmd pid: $pid"
+		logger_debug "[Mapping] $mapping_cmd pid: $pid"
 
 		# add pid to array
 		PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
@@ -536,7 +536,7 @@ done
 
 # wait until all bwa aln processes to finish then proceed to next step
 # reinit pid array
-pid_list_failed_msg="[MAPPING] Failed getting process status for process $p."	
+pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
 for p in "${PIDS_ARR[@]}"; do
 	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
 	rtrn=$?
@@ -549,8 +549,8 @@ PIDS_ARR=()
 
 # bwa sampe
 mapping_cmd="bwa sampe"
-for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Mapping] Run bwa aln on stack samples."
+for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Mapping] Current sample: ${!s}"
 	
 	# fastq files
@@ -571,27 +571,27 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	# error logging
-	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!seqF}_mapping_err.log
+	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!s}_mapping_err.log
 
 	# build cli options
 	bwa_sampe_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
 	rtrn=$?
-	cli_options_failed_msg="[MAPPING] An error occured while building the $mapping_cmd command line options for current sample ${!s}."
+	cli_options_failed_msg="[Mapping] An error occured while building the $mapping_cmd command line options for current sample ${!s}."
 	exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	opts="${bwa_sampe_cli_options[@]}"
-	logger_debug "[MAPPING] $mapping_cmd options: $opts"
+	logger_debug "[Mapping] $mapping_cmd options: $opts"
 	
 	# build cli
 	bwa_sampe_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!saiFR[0]} ${!saiFR[1]} ${!seqFR[0]} ${!seqFR[1]} >$OUTPUT_DIR/${!s}/${!s}_${!ga_papamama}.sam 2>$CURRENT_MAPPING_ERROR &"
 
 	# run the cli
-	logger_debug "[MAPPING] $bwa_sampe_cli"
+	logger_debug "[Mapping] $bwa_sampe_cli"
 	eval "$bwa_sampe_cli" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
-	eval_failed_msg="[MAPPING] An error occured while eval $mapping_cmd cli."
+	eval_failed_msg="[Mapping] An error occured while eval $mapping_cmd cli."
 	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-	logger_debug "[MAPPING] $mapping_cmd pid: $pid"
+	logger_debug "[Mapping] $mapping_cmd pid: $pid"
 
 	# add pid to array
 	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
@@ -599,7 +599,7 @@ done
 
 # wait until all bwa sampe processes to finish then proceed to next step
 # reinit pid array
-pid_list_failed_msg="[MAPPING] Failed getting process status for process $p."	
+pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
 for p in "${PIDS_ARR[@]}"; do
 	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
 	rtrn=$?
@@ -609,14 +609,156 @@ logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proc
 waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
 logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: Filtering."
 PIDS_ARR=()
+logger_info "[Mapping] Step completed."
 
 
+#==========================================
+# FILTERING
+#==========================================
+logger_info "[Filtering] Filter alignments."
 
+# check sam file
+logger_info "[Filtering] Check sam files output for stack samples."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
 
+	samF=$(ls $OUTPUT_DIR/${!s}/*.sam)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Filtering] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samF file does exist and is not empty."
+	fi
+done
 
+# filter unmapped reads
+logger_info "[Filtering] Filter unmapped reads."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
 
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
+	samF=$(ls $OUTPUT_DIR/${!s}/*.sam)
+	eval "get_mapped_reads_w_header $samF >${samF%.*}_mapped.sam 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval get_mapped_reads cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] get_mapped_reads pid: $pid"
 
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+
+# wait until all get_mapped_reads processes to finish then proceed to next step
+# reinit pid array
+pid_list_failed_msg="[Filtering] Failed getting process status for process $p."	
+for p in "${PIDS_ARR[@]}"; do
+	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	rtrn=$?
+	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+done
+logger_info "[Filtering] Wait for all get_mapped_reads processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All get_mapped_reads processes finished. Will proceed to next filtering step."
+PIDS_ARR=()
+
+# check mapped sam file
+logger_info "[Filtering] Check mapped sam files output for stack samples."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Filtering] Mapped sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samF file does exist and is not empty."
+	fi
+done
+
+# filter non unique match
+logger_info "[Filtering] Filter non unique matches: extract header"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
+	eval "samtools view -H -S $samF >${samF%.*}_uniqMatch.sam.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval get_mapped_reads cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Filtering] Wait for all samtools view processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All samtools view processes finished. Will proceed to next filtering step."
+PIDS_ARR=()
+
+logger_info "[Filtering] Filter non unique matches: apply filter"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
+	eval "get_unique_matches $samF >>${samF%.*}_uniqMatch.sam.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval get_unique_matches cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] get_unique_matches pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Filtering] Wait for all get_unique_matches processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All get_unique_matches processes finished. Will proceed to next filtering step."
+PIDS_ARR=()
+
+logger_info "[Filtering] Filter non unique matches: rename tmp to sam"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Filtering] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
+
+	samF=$(ls $OUTPUT_DIR/${!s}/*_uniqMatch.sam.tmp)
+	eval "mv $samF ${samF%.*} 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Filtering] An error occured while eval mv cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Filtering] mv pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Filtering] Wait for all mv processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Filtering] All mv processes finished. Will proceed to next step: cleaning"
+PIDS_ARR=()
+
+# Clean Filtering
+logger_info "[Filtering] Clean tmp files"
+logger_debug "[Filtering] Remove all *.${!ga_papamama}.sam files:"
+logger_debug "$(find $OUTPUT_DIR -name "*.${!ga_papamama}.sam")"
+find $OUTPUT_DIR -name "*.${!ga_papamama}.sam" -delete
+logger_debug "[Filtering] Remove all *_mapped.sam files:"
+logger_debug "$(find $OUTPUT_DIR -name "*_mapped.sam")"
+find $OUTPUT_DIR -name "*_mapped.sam" -delete
+logger_info "[Filtering] All tmp files removal completed."
 
 
 
