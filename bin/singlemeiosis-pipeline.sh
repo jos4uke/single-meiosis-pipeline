@@ -836,13 +836,17 @@ logger_debug "$(find $OUTPUT_DIR -name "*_mapped.sam")"
 find $OUTPUT_DIR -name "*_mapped.sam" -delete
 logger_debug "[Filtering] Remove all *.tmp files:"
 logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
-find $OUTPUT_DIR -name "*.hdr" -delete
+find $OUTPUT_DIR -name "*.tmp" -delete
 logger_info "[Filtering] All tmp files removal completed."
 
 
 #==========================================
 # ANALYSIS
 #==========================================
+
+#
+# PART I: papamama genome
+#
 
 # bam conversion
 logger_info "[Analysis] Apply bam conversion"
@@ -852,7 +856,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	# error logging
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
-	samF=$(ls $OUTPUT_DIR/${!s}/*_uniqMatch.sam)
+	samF=$(ls $OUTPUT_DIR/${!s}/*_XM.sam)
 
 	eval "samtools view -bS ${samF} >${samF%.*}.bam 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
 	pid=$!
@@ -907,6 +911,394 @@ for s in "${SAMPLES_STACK[@]}"; do
 	eval "samtools index ${bamF} ${bamF}.bai 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools index cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools index pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools index processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools index processes finished. Will proceed to next step: extract header"
+PIDS_ARR=()
+
+#
+# PART II: dispatch alignments from papa and mama genomes
+#
+
+declare -r papa=$(toupper ${NAMESPACE}_genome_alias)_papa_short
+declare -r mama=$(toupper ${NAMESPACE}_genome_alias)_mama_short
+declare -r papamama=$(toupper ${NAMESPACE}_genome_alias)_papamama_short
+
+# extract header from papamama alignments
+logger_info "[Analysis] Extract header from papamama alignments"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
+
+	bamF=$(ls $OUTPUT_DIR/${!s}/*_sorted.bam)
+
+	# extract header
+	eval "samtools view -H $bamF >${bamF%.*}.hdr.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools view processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools view processes finished. Will proceed to next step: dispatch header"
+PIDS_ARR=()
+
+# dispatch header from papa and mama genomes
+logger_info "[Analysis] Dispatch header from papa and mama genomes"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
+
+	bamH=$(ls $OUTPUT_DIR/${!s}/*.hdr.tmp)
+
+	# dispatch header from papa genome
+	eval "dispatch_two_genomes_header ${bamH} ${!papa} ${!mama} >${bamH%.*}.${!papa}.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval dispatch_two_genomes_header cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] dispatch_two_genomes_header pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# dispatch header from mama genome
+	eval "dispatch_two_genomes_header ${bamH} ${!mama} ${!papa} >${bamH%.*}.${!mama}.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval dispatch_two_genomes_header cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] dispatch_two_genomes_header pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all dispatch_two_genomes_header processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All dispatch_two_genomes_header processes finished. Will proceed to next step: dispatch header"
+PIDS_ARR=()
+
+# dispatch alignments in 2 separate sam files
+logger_info "[Analysis] Dispatch alignments in two separate sam files"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
+
+	bamF=$(ls $OUTPUT_DIR/${!s}/*_sorted.bam)
+
+	# dispatch alignments from papa
+	eval "samtools view $bamF ${!papa}_Chr1 ${!papa}_Chr2 ${!papa}_Chr3 ${!papa}_Chr4 ${!papa}_Chr5 ${!papa}_chloroplast ${!papa}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!papa}.sam.tmp &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# dispatch alignments from mama
+	eval "samtools view $bamF ${!mama}_Chr1 ${!mama}_Chr2 ${!mama}_Chr3 ${!mama}_Chr4 ${!mama}_Chr5 ${!mama}_chloroplast ${!mama}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!mama}.sam.tmp &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools view processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools view processes finished. Will proceed to next step: concat dispatched header and alignments"
+PIDS_ARR=()
+
+# concat dispatched header and alignments
+logger_info "[Analysis] Concat dispatched header and alignments"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# concat dispatched header and alignments from papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam.tmp)
+	hdrFP=$(ls $OUTPUT_DIR/${!s}/*hdr.${!papa}.tmp)
+	eval "cat $hdrFP $samFP >${samFP%.*} &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval cat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] cat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# concat dispatched header and alignments from mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam.tmp)
+	hdrFM=$(ls $OUTPUT_DIR/${!s}/*hdr.${!mama}.tmp)
+	eval "cat $hdrFM $samFM >${samFM%.*} &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval cat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] cat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all cat processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All cat processes finished. Will proceed to next step: get stats on dispatched alignments"
+PIDS_ARR=()
+
+# stats
+logger_info "[Analysis] Get stats on dispatched alignments."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	eval "samstat -f sam $samFP -n ${samFP%.*}_stat_before_renaming &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samstat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	eval "samstat -f sam $samFM -n ${samFM%.*}_stat_before_renaming &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samstat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samstat processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samstat processes finished. Will proceed to next step: renaming chromosomes"
+PIDS_ARR=()
+
+# Rename chromosomes
+## Chr
+logger_info "[Analysis] Rename chromosomes in dispatched alignments."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	eval "sed -i "s/${!papa}_Chr/Chr/g" $samFP &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval sed cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	eval "sed -i "s/${!mama}_Chr/Chr/g" $samFM &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval sed cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all sed processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All sed processes finished. Will proceed to next step: rename mitochondria"
+PIDS_ARR=()
+
+## mitochondria
+logger_info "[Analysis] Rename mitochondria in dispatched alignments."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	eval "sed -i "s/${!papa}_mitochondria/mitochondria/g" $samFP &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval sed cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	eval "sed -i "s/${!mama}_mitochondria/mitochondria/g" $samFM &" 2>$ERROR_TMP
+
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval sed cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all sed processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All sed processes finished. Will proceed to next step: rename chloroplast"
+PIDS_ARR=()
+
+## chloroplast
+logger_info "[Analysis] Rename chloroplast in dispatched alignments."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	eval "sed -i "s/${!papa}_chloroplast/chloroplast/g" $samFP &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval sed cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	eval "sed -i "s/${!mama}_chloroplast/chloroplast/g" $samFM &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval sed cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all sed processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All sed processes finished. Will proceed to next step: get stats on dispatched alignments"
+PIDS_ARR=()
+
+# stats
+logger_info "[Analysis] Get stats on dispatched alignments."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	eval "samstat -f sam $samFP -n ${samFP%.*}_stat_after_renaming &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samstat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	eval "samstat -f sam $samFM -n ${samFM%.*}_stat_after_renaming &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samstat pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samstat processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samstat processes finished. Will proceed to next step: bam conversion"
+PIDS_ARR=()
+
+# bam conversion
+logger_info "[Analysis] Apply bam conversion"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+
+	eval "samtools view -bS ${samFP} >${samFP%.*}.bam &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+
+	eval "samtools view -bS ${samFM} >${samFM%.*}.bam &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools view pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools view processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools view processes finished. Will proceed to next step: bam sorting"
+PIDS_ARR=()
+
+# sort bam
+logger_info "[Analysis] Apply bam sorting"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	bamFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.bam)
+
+	eval "samtools sort ${bamFP} ${bamFP%.*}_sorted &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools sort pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	bamFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.bam)
+
+	eval "samtools sort ${bamFM} ${bamFM%.*}_sorted &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
 	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	logger_debug "[Analysis] samtools sort pid: $pid"
@@ -919,15 +1311,51 @@ waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
 logger_info "[Analysis] All samtools sort processes finished. Will proceed to next step: bam indexing"
 PIDS_ARR=()
 
+# index bam
+logger_info "[Analysis] Apply bam indexing"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# papa
+	bamFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted.bam)
+
+	eval "samtools index ${bamFP} ${bamFP}.bai &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools index cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools index pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+
+	# mama
+	bamFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted.bam)
+
+	eval "samtools index ${bamFM} ${bamFM}.bai &" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval samtools index cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] samtools index pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
+logger_info "[Analysis] Wait for all samtools index processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All samtools index processes finished. Will proceed to next step: "
+PIDS_ARR=()
 
 
 
 
-
-
-
-
-
+# Clean analysis tmp files
+logger_info "[Analysis] Clean tmp files"
+logger_debug "[Analysis] Remove all *.tmp files:"
+logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
+find $OUTPUT_DIR -name "*.tmp" -delete
+logger_info "[Analysis] All tmp files removal completed."
 
 
 
