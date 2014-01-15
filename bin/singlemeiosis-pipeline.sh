@@ -496,13 +496,15 @@ for s in "${SAMPLES_STACK[@]}"; do
 			mkdir_err_msg="[Mapping] An error occured while creating $OUTPUT_DIR/${!s} directory."
 			logger_fatal "$mkdir_err_msg"
 			exit_on_error "$ERROR_TMP" "$mkdir_err_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		fi
 	fi
 	logger_info "[Mapping] bwa will output files in $OUTPUT_DIR/${!s} directory." 
 
 	# fastq files
 	sid=$(echo $s | awk -F"_" '{print $4}')
-	logger_debug "sample id: $sid"
-	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))
+	logger_debug "[Mapping] sample id: $sid"
+	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
+	logger_debug "[Mapping] seqFiles list: ${seqFR[@]}"
 
 	for seqF in "${seqFR[@]}"; do
 		logger_debug "[Mapping] Current fastq file: ${!seqF}"
@@ -538,7 +540,7 @@ done
 # reinit pid array
 pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
 for p in "${PIDS_ARR[@]}"; do
-	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
 	rtrn=$?
 	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 done
@@ -549,14 +551,14 @@ PIDS_ARR=()
 
 # bwa sampe
 mapping_cmd="bwa sampe"
-	logger_info "[Mapping] Run bwa aln on stack samples."
+logger_info "[Mapping] Run bwa aln on stack samples."
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Mapping] Current sample: ${!s}"
 	
 	# fastq files
 	sid=$(echo $s | awk -F"_" '{print $4}')
 	logger_debug "sample id: $sid"
-	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))	
+	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
 
 	# sai files
 	saiFR=($(ls $OUTPUT_DIR/${!s}/*.sai))
@@ -601,7 +603,7 @@ done
 # reinit pid array
 pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
 for p in "${PIDS_ARR[@]}"; do
-	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
 	rtrn=$?
 	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 done
