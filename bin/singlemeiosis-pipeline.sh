@@ -509,7 +509,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	for seqF in "${seqFR[@]}"; do
 		logger_debug "[Mapping] Current fastq file: ${!seqF}"
 		# error logging
-		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/$(basename ${!seqF})_mapping_err.log
+		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/$(basename ${!seqF})_mapping_bwa_aln_err.log
 
 		# build cli options
 		bwa_aln_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
@@ -551,7 +551,7 @@ PIDS_ARR=()
 
 # bwa sampe
 mapping_cmd="bwa sampe"
-logger_info "[Mapping] Run bwa aln on stack samples."
+logger_info "[Mapping] Run bwa sampe on stack samples."
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Mapping] Current sample: ${!s}"
 	
@@ -559,9 +559,11 @@ for s in "${SAMPLES_STACK[@]}"; do
 	sid=$(echo $s | awk -F"_" '{print $4}')
 	logger_debug "sample id: $sid"
 	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
+	logger_debug "[Mapping] seqFiles list: ${seqFR[@]}"
 
 	# sai files
 	saiFR=($(ls $OUTPUT_DIR/${!s}/*.sai))
+	logger_debug "[Mapping] sai files list: ${saiFR[@]}"
 	if [[ -s  ${saiFR[0]} && -s ${saiFR[1]} ]]; then
 		logger_info "The given pair of sai files does exist for the current sample ${!s}."
 	else
@@ -573,7 +575,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	# error logging
-	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!s}_mapping_err.log
+	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!s}_mapping_bwa_sampe_err.log
 
 	# build cli options
 	bwa_sampe_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
@@ -584,7 +586,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	logger_debug "[Mapping] $mapping_cmd options: $opts"
 	
 	# build cli
-	bwa_sampe_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!saiFR[0]} ${!saiFR[1]} ${!seqFR[0]} ${!seqFR[1]} >$OUTPUT_DIR/${!s}/${!s}_${!ga_papamama}.sam 2>$CURRENT_MAPPING_ERROR &"
+	bwa_sampe_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${saiFR[0]} ${saiFR[1]} ${!seqFR[0]} ${!seqFR[1]} >$OUTPUT_DIR/${!s}/${!s}_${!ga_papamama}.sam 2>$CURRENT_MAPPING_ERROR &"
 
 	# run the cli
 	logger_debug "[Mapping] $bwa_sampe_cli"
