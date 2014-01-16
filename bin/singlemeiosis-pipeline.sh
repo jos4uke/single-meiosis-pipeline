@@ -446,7 +446,7 @@ for s in "${TETRAD_SAMPLES[@]}"; do
 	logger_debug "$s=${!s}"
 	sid=$(echo $s | awk -F"_" '{print $4}')
 	logger_debug "sample id: $sid"
-	seqFR=($(set | grep -e "$(toupper ${NAMESPACE}_${tscs})_$sid_.*_seqfile_R" | cut -d\= -f1))
+	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
 	logger_debug "${seqFR[0]}=${!seqFR[0]}"
 	logger_debug "${seqFR[1]}=${!seqFR[1]}"
 	if [[ -s  ${!seqFR[0]} && -s ${!seqFR[1]} ]]; then
