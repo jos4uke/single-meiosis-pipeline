@@ -636,8 +636,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 done
 
-# filter unmapped reads
-logger_info "[Filtering] Filter unmapped reads."
+# Remove unmapped reads
+logger_info "[Filtering] Remove unmapped reads."
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
@@ -660,7 +660,7 @@ done
 # reinit pid array
 pid_list_failed_msg="[Filtering] Failed getting process status for process $p."	
 for p in "${PIDS_ARR[@]}"; do
-	logger_debug "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
 	rtrn=$?
 	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 done
@@ -709,10 +709,11 @@ logger_info "[Filtering] All samtools view processes finished. Will proceed to n
 PIDS_ARR=()
 
 # filter on MAPQ minimum value
-logger_info "[Filtering] Filter on MAPQ threshold"
+logger_info "[Filtering] Remove alignments with a poor mapping quality"
 declare -r mapq_th=$(toupper ${NAMESPACE}_filtering)_MAPQ_min
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
+	logger_info "[Filtering] MAPQ min: ${!mapq_th}"
 
 	# error logging
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
@@ -734,7 +735,7 @@ logger_info "[Filtering] All filter_on_mapq processes finished. Will proceed to 
 PIDS_ARR=()
 
 # filter non unique hit
-logger_info "[Filtering] Filter non unique hit"
+logger_info "[Filtering] Keep only alignments with one best hit"
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
@@ -742,6 +743,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_MAPQ.tmp)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Filtering] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samF file does exist and is not empty."
+	fi
+
 	eval "get_unique_matches $samF >>${samF%.*}_X0.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -758,7 +767,7 @@ logger_info "[Filtering] All get_unique_matches processes finished. Will proceed
 PIDS_ARR=()
 
 # filter mismatched alignments
-logger_info "[Filtering] Filter mismatched alignments"
+logger_info "[Filtering]  Keep only alignments with no mismatches"
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
@@ -766,6 +775,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_X0.tmp)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Filtering] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samF file does exist and is not empty."
+	fi
+
 	eval "get_no_mismatched_aln $samF >>${samF%.*}_XM.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -782,7 +799,7 @@ logger_info "[Filtering] All get_no_mismatched_aln processes finished. Will proc
 PIDS_ARR=()
 
 # filter gapped alignments
-logger_info "[Filtering] Filter gapped alignments"
+logger_info "[Filtering] Keep only alignments with no gaps"
 for s in "${SAMPLES_STACK[@]}"; do
 	logger_info "[Filtering] Current sample: ${!s}"
 
@@ -790,6 +807,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_XM.tmp)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Filtering] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samF file does exist and is not empty."
+	fi
+
 	eval "get_no_gapped_aln $samF >>${samF%.*}_Xo.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -814,7 +839,23 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samH=$(ls $OUTPUT_DIR/${!s}/*.hdr.tmp)
+	if [[ ! -s $samH ]]; then
+		logger_fatal "[Filtering] Sam header file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samH file does exist and is not empty."
+	fi
+
 	samF=$(ls $OUTPUT_DIR/${!s}/*_XM.tmp)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Filtering] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Filtering] $samF file does exist and is not empty."
+	fi
+
 	eval "cat $samH $samF > ${samF%.*}.sam 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
