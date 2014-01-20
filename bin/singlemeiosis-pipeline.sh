@@ -49,7 +49,7 @@ NAMESPACE="SINGLEMEIOSIS"
 
 WORKING_DIR=$(pwd)
 DATE=$(date '+%F_%Hh%Mm%Ss')
-SESSION_ID=$(date '+%Y%M%d%H%M%S')
+SESSION_ID=$(date '+%Y%M%d%H%M%S') # TODO: fix the month in the format 
 EXECUTED_COMMAND="$0 $*"
 SESSION_TAG=${NAMESPACE}_${USER}_${SESSION_ID}
 
@@ -478,142 +478,142 @@ else
 	done	
 fi
 
-##==========================================
-## MAPPING
-##==========================================
-#logger_info "[Mapping] Run bwa on stack samples."
-#mapping_cmd=
+#==========================================
+# MAPPING
+#==========================================
+logger_info "[Mapping] Run bwa on stack samples."
+mapping_cmd=
 
-## bwa aln
-#mapping_cmd="bwa aln"
-#for s in "${SAMPLES_STACK[@]}"; do
-#	logger_info "[Mapping] Run bwa aln on stack samples."
-#	logger_info "[Mapping] Current sample: ${!s}"
-#	# create the sample output dir $OUTPUT_DIR/${!s}
-#	if [[ ! -d $OUTPUT_DIR/${!s} ]]; then	
-#		mkdir $OUTPUT_DIR/${!s} 2>$ERROR_TMP; rtrn=$?
-#		if [[ $rtrn -ne 0 ]]; then 
-#			mkdir_err_msg="[Mapping] An error occured while creating $OUTPUT_DIR/${!s} directory."
-#			logger_fatal "$mkdir_err_msg"
-#			exit_on_error "$ERROR_TMP" "$mkdir_err_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#		fi
-#	fi
-#	logger_info "[Mapping] bwa will output files in $OUTPUT_DIR/${!s} directory." 
+# bwa aln
+mapping_cmd="bwa aln"
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Mapping] Run bwa aln on stack samples."
+	logger_info "[Mapping] Current sample: ${!s}"
+	# create the sample output dir $OUTPUT_DIR/${!s}
+	if [[ ! -d $OUTPUT_DIR/${!s} ]]; then	
+		mkdir $OUTPUT_DIR/${!s} 2>$ERROR_TMP; rtrn=$?
+		if [[ $rtrn -ne 0 ]]; then 
+			mkdir_err_msg="[Mapping] An error occured while creating $OUTPUT_DIR/${!s} directory."
+			logger_fatal "$mkdir_err_msg"
+			exit_on_error "$ERROR_TMP" "$mkdir_err_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		fi
+	fi
+	logger_info "[Mapping] bwa will output files in $OUTPUT_DIR/${!s} directory." 
 
-#	# fastq files
-#	sid=$(echo $s | awk -F"_" '{print $4}')
-#	logger_debug "[Mapping] sample id: $sid"
-#	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
-#	logger_debug "[Mapping] seqFiles list: ${seqFR[@]}"
+	# fastq files
+	sid=$(echo $s | awk -F"_" '{print $4}')
+	logger_debug "[Mapping] sample id: $sid"
+	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
+	logger_debug "[Mapping] seqFiles list: ${seqFR[@]}"
 
-#	for seqF in "${seqFR[@]}"; do
-#		logger_debug "[Mapping] Current fastq file: ${!seqF}"
-#		# error logging
-#		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/$(basename ${!seqF})_mapping_bwa_aln_err.log
+	for seqF in "${seqFR[@]}"; do
+		logger_debug "[Mapping] Current fastq file: ${!seqF}"
+		# error logging
+		CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/$(basename ${!seqF})_mapping_bwa_aln_err.log
 
-#		# build cli options
-#		bwa_aln_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
-#		rtrn=$?
-#		cli_options_failed_msg="[Mapping] An error occured while building the $mapping_cmd command line options for current sample ${!s} and current fastq file ${!seqF}."
-#		exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#		opts="${bwa_aln_cli_options[@]}"
-#		logger_debug "[Mapping] $mapping_cmd options: $opts"
+		# build cli options
+		bwa_aln_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
+		rtrn=$?
+		cli_options_failed_msg="[Mapping] An error occured while building the $mapping_cmd command line options for current sample ${!s} and current fastq file ${!seqF}."
+		exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		opts="${bwa_aln_cli_options[@]}"
+		logger_debug "[Mapping] $mapping_cmd options: $opts"
 
-#		# build cli
-#		bwa_aln_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!seqF} >$OUTPUT_DIR/${!s}/$(basename ${!seqF%.*}).sai 2>$CURRENT_MAPPING_ERROR &"
+		# build cli
+		bwa_aln_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${!seqF} >$OUTPUT_DIR/${!s}/$(basename ${!seqF%.*}).sai 2>$CURRENT_MAPPING_ERROR &"
 
-#		# run the cli
-#		logger_debug "[Mapping] $bwa_aln_cli"
-#		eval "$bwa_aln_cli" 2>$ERROR_TMP
-#		pid=$!
-#		rtrn=$?
-#		eval_failed_msg="[Mapping] An error occured while eval $mapping_cmd cli."
-#		exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#		logger_debug "[Mapping] $mapping_cmd pid: $pid"
+		# run the cli
+		logger_debug "[Mapping] $bwa_aln_cli"
+		eval "$bwa_aln_cli" 2>$ERROR_TMP
+		pid=$!
+		rtrn=$?
+		eval_failed_msg="[Mapping] An error occured while eval $mapping_cmd cli."
+		exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		logger_debug "[Mapping] $mapping_cmd pid: $pid"
 
-#		# add pid to array
-#		PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
-#	done
-#done
+		# add pid to array
+		PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+	done
+done
 
-## wait until all bwa aln processes to finish then proceed to next step
-## reinit pid array
-#pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
-#for p in "${PIDS_ARR[@]}"; do
-#	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
-#	rtrn=$?
-#	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#done
-#logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proceed to next step."
-#waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
-#logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: bwa sampe."
-#PIDS_ARR=()
+# wait until all bwa aln processes to finish then proceed to next step
+# reinit pid array
+pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
+for p in "${PIDS_ARR[@]}"; do
+	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	rtrn=$?
+	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+done
+logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: bwa sampe."
+PIDS_ARR=()
 
-## bwa sampe
-#mapping_cmd="bwa sampe"
-#logger_info "[Mapping] Run bwa sampe on stack samples."
-#for s in "${SAMPLES_STACK[@]}"; do
-#	logger_info "[Mapping] Current sample: ${!s}"
-#	
-#	# fastq files
-#	sid=$(echo $s | awk -F"_" '{print $4}')
-#	logger_debug "sample id: $sid"
-#	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
-#	logger_debug "[Mapping] seqFiles list: ${seqFR[@]}"
+# bwa sampe
+mapping_cmd="bwa sampe"
+logger_info "[Mapping] Run bwa sampe on stack samples."
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Mapping] Current sample: ${!s}"
+	
+	# fastq files
+	sid=$(echo $s | awk -F"_" '{print $4}')
+	logger_debug "sample id: $sid"
+	seqFR=($(set | awk -F= -vns="${NAMESPACE}" -vcfg="${tscs}" -vspl="${sid}" 'BEGIN {ns=toupper(ns); cfg=toupper(cfg); pattern=ns "_" cfg "_" spl "_\.\*_seqfile_R";} $1~pattern {print $1}' 2>$ERROR_TMP))
+	logger_debug "[Mapping] seqFiles list: ${seqFR[@]}"
 
-#	# sai files
-#	saiFR=($(ls $OUTPUT_DIR/${!s}/*.sai))
-#	logger_debug "[Mapping] sai files list: ${saiFR[@]}"
-#	if [[ -s  ${saiFR[0]} && -s ${saiFR[1]} ]]; then
-#		logger_info "The given pair of sai files does exist for the current sample ${!s}."
-#	else
-#		[[ ! -s "${saiFR[0]}" ]] && logger_warn "${saiFR[0]} file does not exist or is empty."
-#		[[ ! -s "${saiFR[1]}" ]] && logger_warn "${saiFR[1]} file does not exist or is empty."
-#		logger_warn "No pair of sai files does exist for the current sample ${!s}."
-#		logger_fatal "Exit the pipeline."
-#		exit 1;
-#	fi
+	# sai files
+	saiFR=($(ls $OUTPUT_DIR/${!s}/*.sai))
+	logger_debug "[Mapping] sai files list: ${saiFR[@]}"
+	if [[ -s  ${saiFR[0]} && -s ${saiFR[1]} ]]; then
+		logger_info "The given pair of sai files does exist for the current sample ${!s}."
+	else
+		[[ ! -s "${saiFR[0]}" ]] && logger_warn "${saiFR[0]} file does not exist or is empty."
+		[[ ! -s "${saiFR[1]}" ]] && logger_warn "${saiFR[1]} file does not exist or is empty."
+		logger_warn "No pair of sai files does exist for the current sample ${!s}."
+		logger_fatal "Exit the pipeline."
+		exit 1;
+	fi
 
-#	# error logging
-#	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!s}_mapping_bwa_sampe_err.log
+	# error logging
+	CURRENT_MAPPING_ERROR=$OUTPUT_DIR/${!s}/${!s}_mapping_bwa_sampe_err.log
 
-#	# build cli options
-#	bwa_sampe_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
-#	rtrn=$?
-#	cli_options_failed_msg="[Mapping] An error occured while building the $mapping_cmd command line options for current sample ${!s}."
-#	exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#	opts="${bwa_sampe_cli_options[@]}"
-#	logger_debug "[Mapping] $mapping_cmd options: $opts"
-#	
-#	# build cli
-#	bwa_sampe_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${saiFR[0]} ${saiFR[1]} ${!seqFR[0]} ${!seqFR[1]} >$OUTPUT_DIR/${!s}/${!s}_${!ga_papamama}.sam 2>$CURRENT_MAPPING_ERROR &"
+	# build cli options
+	bwa_sampe_cli_options=($(buildCommandLineOptions "$mapping_cmd" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR))
+	rtrn=$?
+	cli_options_failed_msg="[Mapping] An error occured while building the $mapping_cmd command line options for current sample ${!s}."
+	exit_on_error "$CURRENT_MAPPING_ERROR" "$cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	opts="${bwa_sampe_cli_options[@]}"
+	logger_debug "[Mapping] $mapping_cmd options: $opts"
+	
+	# build cli
+	bwa_sampe_cli="$mapping_cmd $opts ${!papamama_bwa_index_path} ${saiFR[0]} ${saiFR[1]} ${!seqFR[0]} ${!seqFR[1]} >$OUTPUT_DIR/${!s}/${!s}_${!ga_papamama}.sam 2>$CURRENT_MAPPING_ERROR &"
 
-#	# run the cli
-#	logger_debug "[Mapping] $bwa_sampe_cli"
-#	eval "$bwa_sampe_cli" 2>$ERROR_TMP
-#	pid=$!
-#	rtrn=$?
-#	eval_failed_msg="[Mapping] An error occured while eval $mapping_cmd cli."
-#	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#	logger_debug "[Mapping] $mapping_cmd pid: $pid"
+	# run the cli
+	logger_debug "[Mapping] $bwa_sampe_cli"
+	eval "$bwa_sampe_cli" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Mapping] An error occured while eval $mapping_cmd cli."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Mapping] $mapping_cmd pid: $pid"
 
-#	# add pid to array
-#	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
-#done
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+done
 
-## wait until all bwa sampe processes to finish then proceed to next step
-## reinit pid array
-#pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
-#for p in "${PIDS_ARR[@]}"; do
-#	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
-#	rtrn=$?
-#	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
-#done
-#logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proceed to next step."
-#waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
-#logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: Filtering."
-#PIDS_ARR=()
-#logger_info "[Mapping] Step completed."
+# wait until all bwa sampe processes to finish then proceed to next step
+# reinit pid array
+pid_list_failed_msg="[Mapping] Failed getting process status for process $p."	
+for p in "${PIDS_ARR[@]}"; do
+	logger_trace "$(ps aux | grep $USER | gawk -v pid=$p '$2 ~ pid {print $0}' 2>${ERROR_TMP})"
+	rtrn=$?
+	exit_on_error "$ERROR_TMP" "$pid_list_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+done
+logger_info "[Mapping] Wait for all $mapping_cmd processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Mapping] All $mapping_cmd processes finished. Will proceed to next step: Filtering."
+PIDS_ARR=()
+logger_info "[Mapping] Step completed."
 
 
 #==========================================
@@ -874,7 +874,7 @@ PIDS_ARR=()
 # Clean Filtering
 logger_info "[Filtering] Clean tmp files"
 logger_debug "[Filtering] Remove all *.${!ga_papamama}.sam files:"
-logger_debug "$(find $OUTPUT_DIR -name "*.${!ga_papamama}.sam")"
+logger_debug "$(find $OUTPUT_DIR -name "*_${!ga_papamama}.sam")"
 find $OUTPUT_DIR -name "*.${!ga_papamama}.sam" -delete
 logger_debug "[Filtering] Remove all *_mapped.sam files:"
 logger_debug "$(find $OUTPUT_DIR -name "*_mapped.sam")"
@@ -883,7 +883,7 @@ logger_debug "[Filtering] Remove all *.tmp files:"
 logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
 find $OUTPUT_DIR -name "*.tmp" -delete
 logger_info "[Filtering] All tmp files removal completed."
-
+logger_info "[Filtering Step completed."
 
 #==========================================
 # ANALYSIS
@@ -901,7 +901,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 	# error logging
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
-	samF=$(ls $OUTPUT_DIR/${!s}/*_XM.sam)
+	samF=$(ls $OUTPUT_DIR/${!s}/*_Xo.sam)
+	if [[ ! -s $samF ]]; then
+		logger_fatal "[Analysis] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samF file does exist and is not empty."
+	fi
 
 	eval "samtools view -bS ${samF} >${samF%.*}.bam 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
 	pid=$!
@@ -927,6 +934,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
 	bamF=$(ls $OUTPUT_DIR/${!s}/*.bam)
+	if [[ ! -s $bamF ]]; then
+		logger_fatal "[Analysis] Bam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamF file does exist and is not empty."
+	fi
 
 	eval "samtools sort ${bamF} ${bamF%.*}_sorted 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
 	pid=$!
@@ -952,6 +966,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
 	bamF=$(ls $OUTPUT_DIR/${!s}/*_sorted.bam)
+	if [[ ! -s $bamF ]]; then
+		logger_fatal "[Analysis] Bam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamF file does exist and is not empty."
+	fi
 
 	eval "samtools index ${bamF} ${bamF}.bai 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
 	pid=$!
@@ -967,6 +988,7 @@ logger_info "[Analysis] Wait for all samtools index processes to finish before p
 waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
 logger_info "[Analysis] All samtools index processes finished. Will proceed to next step: extract header"
 PIDS_ARR=()
+
 
 #
 # PART II: dispatch alignments from papa and mama genomes
@@ -985,6 +1007,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
 	bamF=$(ls $OUTPUT_DIR/${!s}/*_sorted.bam)
+	if [[ ! -s $bamF ]]; then
+		logger_fatal "[Analysis] Bam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamF file does exist and is not empty."
+	fi
 
 	# extract header
 	eval "samtools view -H $bamF >${bamF%.*}.hdr.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
@@ -1011,6 +1040,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
 	bamH=$(ls $OUTPUT_DIR/${!s}/*.hdr.tmp)
+	if [[ ! -s $bamH ]]; then
+		logger_fatal "[Analysis] Bam header file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamH file does exist and is not empty."
+	fi
 
 	# dispatch header from papa genome
 	eval "dispatch_two_genomes_header ${bamH} ${!papa} ${!mama} >${bamH%.*}.${!papa}.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
@@ -1048,6 +1084,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_ANALYSIS_ERROR=$OUTPUT_DIR/${!s}/${!s}_analysis_err.log
 
 	bamF=$(ls $OUTPUT_DIR/${!s}/*_sorted.bam)
+	if [[ ! -s $bamF ]]; then
+		logger_fatal "[Analysis] Bam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamF file does exist and is not empty."
+	fi
 
 	# dispatch alignments from papa
 	eval "samtools view $bamF ${!papa}_Chr1 ${!papa}_Chr2 ${!papa}_Chr3 ${!papa}_Chr4 ${!papa}_Chr5 ${!papa}_chloroplast ${!papa}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!papa}.sam.tmp &" 2>$ERROR_TMP
@@ -1083,7 +1126,23 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# concat dispatched header and alignments from papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam.tmp)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
+
 	hdrFP=$(ls $OUTPUT_DIR/${!s}/*hdr.${!papa}.tmp)
+	if [[ ! -s $hdrFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} header file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $hdrFP file does exist and is not empty."
+	fi
+
 	eval "cat $hdrFP $samFP >${samFP%.*} &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1096,7 +1155,23 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# concat dispatched header and alignments from mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam.tmp)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
+
 	hdrFM=$(ls $OUTPUT_DIR/${!s}/*hdr.${!mama}.tmp)
+	if [[ ! -s $hdrFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} header file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $hdrFM file does exist and is not empty."
+	fi
+
 	eval "cat $hdrFM $samFM >${samFM%.*} &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1119,6 +1194,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
+
 	eval "samstat -f sam $samFP -n ${samFP%.*}_stat_before_renaming &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1131,6 +1214,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
+
 	eval "samstat -f sam $samFM -n ${samFM%.*}_stat_before_renaming &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1154,6 +1245,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
+
 	eval "sed -i "s/${!papa}_Chr/Chr/g" $samFP &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1166,6 +1265,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
 	eval "sed -i "s/${!mama}_Chr/Chr/g" $samFM &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1188,6 +1294,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
+
 	eval "sed -i "s/${!papa}_mitochondria/mitochondria/g" $samFP &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1200,6 +1314,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
+
 	eval "sed -i "s/${!mama}_mitochondria/mitochondria/g" $samFM &" 2>$ERROR_TMP
 
 	pid=$!
@@ -1223,6 +1345,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
+
 	eval "sed -i "s/${!papa}_chloroplast/chloroplast/g" $samFP &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1235,6 +1365,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
+
 	eval "sed -i "s/${!mama}_chloroplast/chloroplast/g" $samFM &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1257,6 +1395,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
+
 	eval "samstat -f sam $samFP -n ${samFP%.*}_stat_after_renaming &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1269,6 +1415,14 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
+
 	eval "samstat -f sam $samFM -n ${samFM%.*}_stat_after_renaming &" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1291,6 +1445,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	samFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.sam)
+	if [[ ! -s $samFP ]]; then
+		logger_fatal "[Analysis] Sam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFP file does exist and is not empty."
+	fi
 
 	eval "samtools view -bS ${samFP} >${samFP%.*}.bam &" 2>$ERROR_TMP
 	pid=$!
@@ -1304,6 +1465,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	samFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.sam)
+	if [[ ! -s $samFM ]]; then
+		logger_fatal "[Analysis] Sam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $samFM file does exist and is not empty."
+	fi
 
 	eval "samtools view -bS ${samFM} >${samFM%.*}.bam &" 2>$ERROR_TMP
 	pid=$!
@@ -1327,6 +1495,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	bamFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}.bam)
+	if [[ ! -s $bamFP ]]; then
+		logger_fatal "[Analysis] Bam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamFP file does exist and is not empty."
+	fi
 
 	eval "samtools sort ${bamFP} ${bamFP%.*}_sorted &" 2>$ERROR_TMP
 	pid=$!
@@ -1340,6 +1515,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	bamFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}.bam)
+	if [[ ! -s $bamFM ]]; then
+		logger_fatal "[Analysis] Bam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamFM file does exist and is not empty."
+	fi
 
 	eval "samtools sort ${bamFM} ${bamFM%.*}_sorted &" 2>$ERROR_TMP
 	pid=$!
@@ -1363,6 +1545,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	bamFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted.bam)
+	if [[ ! -s $bamFP ]]; then
+		logger_fatal "[Analysis] Bam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamFP file does exist and is not empty."
+	fi
 
 	eval "samtools index ${bamFP} ${bamFP}.bai &" 2>$ERROR_TMP
 	pid=$!
@@ -1376,6 +1565,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	bamFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted.bam)
+	if [[ ! -s $bamFM ]]; then
+		logger_fatal "[Analysis] Bam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamFM file does exist and is not empty."
+	fi
 
 	eval "samtools index ${bamFM} ${bamFM}.bai &" 2>$ERROR_TMP
 	pid=$!
@@ -1408,25 +1604,32 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	bamFP=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted.bam)
+	if [[ ! -s $bamFP ]]; then
+		logger_fatal "[Analysis] Bam ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamFP file does exist and is not empty."
+	fi
 
 	# build cli options
 	##	
-	samtools_mpileup_cli_options_papa=($(buildCommandLineOptions "$cmd1" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_PAPA))
+	samtools_mpileup_cli_options_papa=($(buildCommandLineOptions "$cmd1" "$NAMESPACE" 2>$CURRENT_ANALYSIS_ERROR_PAPA))
 	rtrn=$?
 	sm_cli_options_failed_msg="[Analysis] An error occured while building the $cmd1 command line options for current sample ${!s} and $bamFP."
-	exit_on_error "$CURRENT_MAPPING_ERROR_PAPA" "$sm_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	exit_on_error "$CURRENT_ANALYSIS_ERROR_PAPA" "$sm_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	opts_sm_papa="${samtools_mpileup_cli_options_papa[@]}"
 	logger_debug "[Analysis] $cmd1 options: ${opts_sm_papa}"
 	##
-	bcftools_view_cli_options_papa=($(buildCommandLineOptions "$cmd2" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_PAPA))
+	bcftools_view_cli_options_papa=($(buildCommandLineOptions "$cmd2" "$NAMESPACE" 2>$CURRENT_ANALYSIS_ERROR_PAPA))
 	rtrn=$?
 	bv_cli_options_failed_msg="[Analysis] An error occured while building the $cmd2 command line options for current sample ${!s} and $bamFP."
-	exit_on_error "$CURRENT_MAPPING_ERROR_PAPA" "$bv_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	exit_on_error "$CURRENT_ANALYSIS_ERROR_PAPA" "$bv_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	opts_bv_papa="${bcftools_view_cli_options_papa[@]}"
 	logger_debug "[Analysis] $cmd2 options: ${opts_bv_papa}"
 
 	# build cli
-	samtools_mpileup_cli_papa="$cmd1 ${opts_sm_papa} -f ${!ga_papa_fasta}"
+	samtools_mpileup_cli_papa="$cmd1 ${opts_sm_papa} -f ${!ga_papa_fasta} ${bamFP}"
 	bcftools_view_cli_papa="$cmd2 ${opts_bv_papa} -"
 	complete_papa_cli="${samtools_mpileup_cli_papa} | ${bcftools_view_cli_papa} >${bamFP%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_PAPA &"
 
@@ -1444,27 +1647,34 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# mama
 	bamFM=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted.bam)
+	if [[ ! -s $bamFM ]]; then
+		logger_fatal "[Analysis] Bam ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $bamFM file does exist and is not empty."
+	fi
 
 	# build cli options
 	##	
-	samtools_mpileup_cli_options_mama=($(buildCommandLineOptions "$cmd1" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_MAMA))
+	samtools_mpileup_cli_options_mama=($(buildCommandLineOptions "$cmd1" "$NAMESPACE" 2>$CURRENT_ANALYSIS_ERROR_MAMA))
 	rtrn=$?
 	sm_cli_options_failed_msg="[Analysis] An error occured while building the $cmd1 command line options for current sample ${!s} and $bamFM."
-	exit_on_error "$CURRENT_MAPPING_ERROR_MAMA" "$sm_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	exit_on_error "$CURRENT_ANALYSIS_ERROR_MAMA" "$sm_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	opts_sm_mama="${samtools_mpileup_cli_options_mama[@]}"
 	logger_debug "[Analysis] $cmd1 options: ${opts_sm_mama}"
 	##
-	bcftools_view_cli_options_mama=($(buildCommandLineOptions "$cmd2" "$NAMESPACE" 2>$CURRENT_MAPPING_ERROR_MAMA))
+	bcftools_view_cli_options_mama=($(buildCommandLineOptions "$cmd2" "$NAMESPACE" 2>$CURRENT_ANALYSIS_ERROR_MAMA))
 	rtrn=$?
 	bv_cli_options_failed_msg="[Analysis] An error occured while building the $cmd2 command line options for current sample ${!s} and $bamFM."
-	exit_on_error "$CURRENT_MAPPING_ERROR_MAMA" "$bv_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	exit_on_error "$CURRENT_ANALYSIS_ERROR_MAMA" "$bv_cli_options_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
 	opts_bv_mama="${bcftools_view_cli_options_mama[@]}"
 	logger_debug "[Analysis] $cmd2 options: ${opts_bv_mama}"
 
 	# build cli
-	samtools_mpileup_cli_mama="$cmd1 ${opts_sm_mama} -f ${!ga_mama_fasta}"
+	samtools_mpileup_cli_mama="$cmd1 ${opts_sm_mama} -f ${!ga_mama_fasta} ${bamFM}"
 	bcftools_view_cli_mama="$cmd2 ${opts_bv_mama} -"
-	complete_mama_cli="${samtools_mpileup_cli_mama} | ${bcftools_view_cli_mama} >${bamFM%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_PAPA &"
+	complete_mama_cli="${samtools_mpileup_cli_mama} | ${bcftools_view_cli_mama} >${bamFM%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_MAMA &"
 
 	# run the cli
 	logger_debug "[Analysis] $complete_mama_cli"
@@ -1480,16 +1690,29 @@ for s in "${SAMPLES_STACK[@]}"; do
 done
 logger_info "[Analysis] Wait for all $cmd1 and $cmd2 processes to finish before proceed to next step."
 waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
-logger_info "[Analysis] All $cmd1 and $cmd2 processes finished. Will proceed to next step: reformat variant file"
+logger_info "[Analysis] All $cmd1 and $cmd2 processes finished. Will proceed to next step: remove first three lines from vcf"
 PIDS_ARR=()
 
 # Remove first three header lines
 logger_info "[Analysis] Remove the first three lines from vcf file."
-vcf_files=$(find $OUTPUT_DIR -name "*.vcf")
-for vcf in "${vcf_files[@]}"; does
+vcf_files=($(find $OUTPUT_DIR -name "*_sorted.vcf"))
+for vcf in "${vcf_files[@]}"; do
 	logger_debug "[Analysis] Current vcf file: $vcf"
-	sed -i '1,3d' $vcf
+	sed_cmd="sed -i '1,3d' $vcf &"
+	eval "$sed_cmd" 2>>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval $sed_cmd."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] sed pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
 done
+logger_info "[Analysis] Wait for all sed processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All sed processes finished. Will proceed to next step: reformat variant file"
+PIDS_ARR=()
 
 # Reformat vcf files
 logger_info "[Analysis] Reformat vcf files."
@@ -1502,23 +1725,134 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	# papa
 	vcf_papa=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted.vcf)
-	awk '{print $1 ";" $2 ";" $4 ";" $8}' $vcf_papa | awk -F ";|=|," '{print $1 "\t" $2 "\t" $3 "\t" $7+$8 "\t" $11 "\t" $15}' > ${vcf_papa%.*}_reformated.vcf
+	if [[ ! -s $vcf_papa ]]; then
+		logger_fatal "[Analysis] VCF ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $vcf_papa file does exist and is not empty."
+	fi
+
+	reformat_cmd_papa="reformat_vcf ${vcf_papa} > ${vcf_papa%.*}_reformated.vcf &"
+	eval "$reformat_cmd_papa" 2>$ERROR_TMP
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval $reformat_cmd_papa."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] reformat vcf pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
 
 	# mama
 	vcf_mama=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted.vcf)
-	awk '{print $1 ";" $2 ";" $4 ";" $8}' $vcf_mama | awk -F ";|=|," '{print $1 "\t" $2 "\t" $3 "\t" $7+$8 "\t" $11 "\t" $15}' > ${vcf_mama%.*}_reformated.vcf
+	if [[ ! -s $vcf_mama ]]; then
+		logger_fatal "[Analysis] VCF ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $vcf_mama file does exist and is not empty."
+	fi
+
+	reformat_cmd_mama="reformat_vcf ${vcf_mama} > ${vcf_mama%.*}_reformated.vcf &"
+	eval "$reformat_cmd_mama" 2>$ERROR_TMP	
+	pid=$!
+	rtrn=$?
+	eval_failed_msg="[Analysis] An error occured while eval $reformat_cmd_mama."
+	exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+	logger_debug "[Analysis] reformat vcf pid: $pid"
+
+	# add pid to array
+	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
 done
+logger_info "[Analysis] Wait for all reformat vcf processes to finish before proceed to next step."
+waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+logger_info "[Analysis] All reformat vcf processes finished. Will proceed to next step: dispatch variants per chromosome"
+PIDS_ARR=()
 
 
-# TODO: Dispatch per chromosomes
+# Dispatch per chromosomes
+logger_info "[Analysis] Dispatch variants per chromosome."
+Chr_nums=("1" "2" "3" "4" "5")
+for s in "${SAMPLES_STACK[@]}"; do
+	logger_info "[Analysis] Current sample: ${!s}"
+
+	# error logging
+	CURRENT_ANALYSIS_ERROR_PAPA=$OUTPUT_DIR/${!s}/${!s}_${!papa}_analysis_err.log
+	CURRENT_ANALYSIS_ERROR_MAMA=$OUTPUT_DIR/${!s}/${!s}_${!mama}_analysis_err.log
+
+	# papa
+	vcf_papa=$(ls $OUTPUT_DIR/${!s}/*_${!papa}_sorted_reformated.vcf)
+	if [[ ! -s $vcf_papa ]]; then
+		logger_fatal "[Analysis] VCF ${!papa} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $vcf_papa file does exist and is not empty."
+	fi
+
+	for n in "${Chr_nums[@]}"; do
+		grep_cmd="grep -e "^Chr$n" ${vcf_papa} >${vcf_papa%.*}_Chr${n}.vcf &"
+		eval "$grep_cmd" 2>>$ERROR_TMP
+		pid=$!
+		rtrn=$?
+		eval_failed_msg="[Analysis] An error occured while eval $grep_cmd."
+		exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		logger_debug "[Analysis] grep pid: $pid"
+
+		# add pid to array
+		PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+	done
+	logger_info "[Analysis] Wait for all current ${!s} sample grep processes on ${!papa} vcfto finish before process next vcf."
+	waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+	logger_info "[Analysis] All current ${!s} sample grep processes on ${!papa} vcf finished. Will process next vcf."
+	PIDS_ARR=()
+
+	# mama
+	vcf_mama=$(ls $OUTPUT_DIR/${!s}/*_${!mama}_sorted_reformated.vcf)
+	if [[ ! -s $vcf_mama ]]; then
+		logger_fatal "[Analysis] VCF ${!mama} file for the current sample ${!s} does not exist or is empty."
+		logger_fatal "Exit the pipeline."
+		exit 1
+	else
+		logger_debug "[Analysis] $vcf_mama file does exist and is not empty."
+	fi
+
+	for n in "${Chr_nums[@]}"; do
+		grep_cmd="grep -e "^Chr$n" ${vcf_mama} >${vcf_mama%.*}_Chr${n}.vcf &"
+		eval "$grep_cmd" 2>>$ERROR_TMP
+		pid=$!
+		rtrn=$?
+		eval_failed_msg="[Analysis] An error occured while eval $grep_cmd."
+		exit_on_error "$ERROR_TMP" "$eval_failed_msg" $rtrn "$OUTPUT_DIR/$LOG_DIR/$DEBUGFILE" $SESSION_TAG $EMAIL
+		logger_debug "[Analysis] grep pid: $pid"
+	
+		# add pid to array
+		PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
+	done
+	logger_info "[Analysis] Wait for all current ${!s} sample grep processes on ${!mama} vcf to finish before process next vcf."
+	waitalluntiltimeout "${PIDS_ARR[@]}" 2>/dev/null
+	logger_info "[Analysis] All current ${!s} sample grep processes on ${!mama} vcf finished. Will process next vcf."
+	PIDS_ARR=()
+done
+logger_info "[Analysis] All grep processes finished. Will proceed to next step: Clean analysis tmp files"
+PIDS_ARR=()
 
 # Clean analysis tmp files
 logger_info "[Analysis] Clean tmp files"
 logger_debug "[Analysis] Remove all *.tmp files:"
 logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
 find $OUTPUT_DIR -name "*.tmp" -delete
+logger_debug "[Analysis] Remove all *_sorted.vcf files:"
+logger_debug "$(find $OUTPUT_DIR -name "*_sorted.vcf")"
+find $OUTPUT_DIR -name "*_sorted.vcf" -delete
 logger_info "[Analysis] All tmp files removal completed."
+# TODO: clean other files
+logger_info "[Analysis] Step completed."
 
+# End
+logger_info "[End] Run successfully the pipeline."
+logger_info "[End] Will exit now."
 
 # close all appenders
 appender_exists stderr && appender_close stderr
