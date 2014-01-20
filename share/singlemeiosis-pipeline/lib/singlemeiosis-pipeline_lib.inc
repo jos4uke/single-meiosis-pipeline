@@ -7,6 +7,10 @@
 # Date: 2013-10-15
 
 
+###
+### Genomes Listing
+###
+
 #---------------------------------------------------------
 # Function: get_genome_aliases_list_wo_snpeff config_file
 # Purpose: Get the genome aliases list having one fasta file and bwa/samtools indexes 
@@ -43,4 +47,17 @@ get_genome_aliases_list_w_bwa()
 	local GENOME_ALIASES_LIST=($(get_genomes_list_with_bwa_index ${BWA_INDEXES}/$(get_tool_version "bwa") "${genomes_list_fasta[@]}" 2>/dev/null))
 
 	echo "${GENOME_ALIASES_LIST[@]}"
+}
+
+###
+### VCF utils
+###
+
+#----------------------------------------------
+# reformat_vcf function
+#
+reformat_vcf()
+{
+	local vcf_input=$1
+	awk '{print $1 ";" $2 ";" $4 ";" $8}' $vcf_input | awk -F ";|=|," '{print $1 "\t" $2 "\t" $3 "\t" $7+$8 "\t" $11 "\t" $15}'
 }
