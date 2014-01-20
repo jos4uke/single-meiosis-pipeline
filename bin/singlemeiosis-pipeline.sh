@@ -1849,11 +1849,16 @@ logger_info "[Analysis] Clean tmp files"
 logger_debug "[Analysis] Remove all *.tmp files:"
 logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
 find $OUTPUT_DIR -name "*.tmp" -delete
+logger_debug "[Analysis] Remove ${!papa}.sam/bam files:"
+logger_debug "$(find $OUTPUT_DIR -name "*_${!papa}.[sb]am")"
+find $OUTPUT_DIR -name "*_${!papa}.[sb]am" -delete
+logger_debug "[Analysis] Remove ${!mama} sam/bam files:"
+logger_debug "$(find $OUTPUT_DIR -name "*_${!mama}.[sb]am")"
+find $OUTPUT_DIR -name "*_${!mama}.[sb]am" -delete
 logger_debug "[Analysis] Remove all *_sorted.vcf files:"
 logger_debug "$(find $OUTPUT_DIR -name "*_sorted.vcf")"
 find $OUTPUT_DIR -name "*_sorted.vcf" -delete
 logger_info "[Analysis] All tmp files removal completed."
-# TODO: clean other files
 logger_info "[Analysis] Step completed."
 
 # End
