@@ -49,7 +49,7 @@ NAMESPACE="SINGLEMEIOSIS"
 
 WORKING_DIR=$(pwd)
 DATE=$(date '+%F_%Hh%Mm%Ss')
-SESSION_ID=$(date '+%Y%M%d%H%M%S') # TODO: fix the month in the format 
+SESSION_ID=$(date '+%Y%m%d%H%M%S') 
 EXECUTED_COMMAND="$0 $*"
 SESSION_TAG=${NAMESPACE}_${USER}_${SESSION_ID}
 
