@@ -879,12 +879,6 @@ find $OUTPUT_DIR -name "*.${!ga_papamama}.sam" -delete
 logger_debug "[Filtering] Remove all *_mapped.sam files:"
 logger_debug "$(find $OUTPUT_DIR -name "*_mapped.sam")"
 find $OUTPUT_DIR -name "*_mapped.sam" -delete
-logger_debug "[Filtering] Remove *_Xo.sam files:"
-logger_debug "$(find $OUTPUT_DIR -name "*_Xo.sam")"
-find $OUTPUT_DIR -name "*_Xo.sam" -delete
-logger_debug "[Filtering] Remove *_Xo.bam files:"
-logger_debug "$(find $OUTPUT_DIR -name "*_Xo.bam")"
-find $OUTPUT_DIR -name "*_Xo.bam" -delete
 logger_debug "[Filtering] Remove all *.tmp files:"
 logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
 find $OUTPUT_DIR -name "*.tmp" -delete
@@ -1846,6 +1840,12 @@ PIDS_ARR=()
 
 # Clean analysis tmp files
 logger_info "[Analysis] Clean tmp files"
+logger_debug "[Analysis] Remove *_Xo.sam file:"
+logger_debug "$(find $OUTPUT_DIR -name "*_Xo.sam")"
+find $OUTPUT_DIR -name "*_Xo.sam" -delete
+logger_debug "[Analysis] Remove *_Xo.bam file:"
+logger_debug "$(find $OUTPUT_DIR -name "*_Xo.bam")"
+find $OUTPUT_DIR -name "*_Xo.bam" -delete
 logger_debug "[Analysis] Remove all *.tmp files:"
 logger_debug "$(find $OUTPUT_DIR -name "*.tmp")"
 find $OUTPUT_DIR -name "*.tmp" -delete
