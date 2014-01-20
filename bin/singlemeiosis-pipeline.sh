@@ -933,9 +933,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $samF file does exist and is not empty."
+		LN=$(wc -l $samF | awk '{print $1}')
+		logger_debug "[Analysis] $samF LN=$LN"
 	fi
 
-	eval "samtools view -bS ${samF} >${samF%.*}.bam 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	cmd="samtools view -bS ${samF} >${samF%.*}.bam 2>$CURRENT_ANALYSIS_ERROR &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
@@ -967,7 +971,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $bamF file does exist and is not empty."
 	fi
 
-	eval "samtools sort ${bamF} ${bamF%.*}_sorted 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	cmd="samtools sort ${bamF} ${bamF%.*}_sorted 2>$CURRENT_ANALYSIS_ERROR &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
@@ -999,7 +1005,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $bamF file does exist and is not empty."
 	fi
 
-	eval "samtools index ${bamF} ${bamF}.bai 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	cmd="samtools index ${bamF} ${bamF}.bai 2>$CURRENT_ANALYSIS_ERROR &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools index cli."
@@ -1041,7 +1049,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	# extract header
-	eval "samtools view -H $bamF >${bamF%.*}.hdr.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	cmd="samtools view -H $bamF >${bamF%.*}.hdr.tmp 2>$CURRENT_ANALYSIS_ERROR &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
@@ -1071,10 +1081,15 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $bamH file does exist and is not empty."
+		LN=$(wc -l $bamH | awk '{print $1}')
+		logger_debug "[Analysis] $bamH LN=$LN"
+		
 	fi
 
 	# dispatch header from papa genome
-	eval "dispatch_two_genomes_header ${bamH} ${!papa} ${!mama} >${bamH%.*}.${!papa}.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	cmd="dispatch_two_genomes_header ${bamH} ${!papa} ${!mama} >${bamH%.*}.${!papa}.tmp 2>$CURRENT_ANALYSIS_ERROR &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval dispatch_two_genomes_header cli."
@@ -1085,7 +1100,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
 
 	# dispatch header from mama genome
-	eval "dispatch_two_genomes_header ${bamH} ${!mama} ${!papa} >${bamH%.*}.${!mama}.tmp 2>$CURRENT_ANALYSIS_ERROR &" 2>$ERROR_TMP
+	cmd="dispatch_two_genomes_header ${bamH} ${!mama} ${!papa} >${bamH%.*}.${!mama}.tmp 2>$CURRENT_ANALYSIS_ERROR &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval dispatch_two_genomes_header cli."
@@ -1118,7 +1135,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	# dispatch alignments from papa
-	eval "samtools view $bamF ${!papa}_Chr1 ${!papa}_Chr2 ${!papa}_Chr3 ${!papa}_Chr4 ${!papa}_Chr5 ${!papa}_chloroplast ${!papa}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!papa}.sam.tmp &" 2>$ERROR_TMP
+	cmd="samtools view $bamF ${!papa}_Chr1 ${!papa}_Chr2 ${!papa}_Chr3 ${!papa}_Chr4 ${!papa}_Chr5 ${!papa}_chloroplast ${!papa}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!papa}.sam.tmp &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
@@ -1129,7 +1148,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 	PIDS_ARR=("${PIDS_ARR[@]}" "$pid")
 
 	# dispatch alignments from mama
-	eval "samtools view $bamF ${!mama}_Chr1 ${!mama}_Chr2 ${!mama}_Chr3 ${!mama}_Chr4 ${!mama}_Chr5 ${!mama}_chloroplast ${!mama}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!mama}.sam.tmp &" 2>$ERROR_TMP
+	cmd="samtools view $bamF ${!mama}_Chr1 ${!mama}_Chr2 ${!mama}_Chr3 ${!mama}_Chr4 ${!mama}_Chr5 ${!mama}_chloroplast ${!mama}_mitochondria >$OUTPUT_DIR/${!s}/${!s}_${!mama}.sam.tmp &" 
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
@@ -1157,6 +1178,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
+		LN=$(wc -l $samFP | awk '{print $1}')
+		logger_debug "[Analysis] $samFP LN=$LN"
 	fi
 
 	hdrFP=$(ls $OUTPUT_DIR/${!s}/*hdr.${!papa}.tmp)
@@ -1166,9 +1189,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $hdrFP file does exist and is not empty."
+		LN=$(wc -l $hdrFP | awk '{print $1}')
+		logger_debug "[Analysis] $hdrFP LN=$LN"
 	fi
 
-	eval "cat $hdrFP $samFP >${samFP%.*} &" 2>$ERROR_TMP
+	cmd="cat $hdrFP $samFP >${samFP%.*} &" 
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval cat cli."
@@ -1186,6 +1213,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
+		LN=$(wc -l $samFM | awk '{print $1}')
+		logger_debug "[Analysis] $samFM LN=$LN"
 	fi
 
 	hdrFM=$(ls $OUTPUT_DIR/${!s}/*hdr.${!mama}.tmp)
@@ -1195,9 +1224,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $hdrFM file does exist and is not empty."
+		LN=$(wc -l $hdrFM | awk '{print $1}')
+		logger_debug "[Analysis] $hdrFM LN=$LN"
 	fi
 
-	eval "cat $hdrFM $samFM >${samFM%.*} &" 2>$ERROR_TMP
+	cmd="cat $hdrFM $samFM >${samFM%.*} &" 
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval cat cli."
@@ -1225,9 +1258,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
+		LN=$(wc -l $samFP | awk '{print $1}')
+		logger_debug "[Analysis] $samFP LN=$LN"
 	fi
 
-	eval "samstat -f sam $samFP -n ${samFP%.*}_stat_before_renaming &" 2>$ERROR_TMP
+	cmd="samstat -f sam $samFP -n ${samFP%.*}_stat_before_renaming &" 
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
@@ -1245,9 +1282,13 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
+		LN=$(wc -l $samFM | awk '{print $1}')
+		logger_debug "[Analysis] $samFM LN=$LN"
 	fi
 
-	eval "samstat -f sam $samFM -n ${samFM%.*}_stat_before_renaming &" 2>$ERROR_TMP
+	cmd="samstat -f sam $samFM -n ${samFM%.*}_stat_before_renaming &" 
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
@@ -1278,7 +1319,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
 	fi
 
-	eval "sed -i "s/${!papa}_Chr/Chr/g" $samFP &" 2>$ERROR_TMP
+	cmd="sed -i "s/${!papa}_Chr/Chr/g" $samFP &" 
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval sed cli."
@@ -1297,7 +1340,10 @@ for s in "${SAMPLES_STACK[@]}"; do
 	else
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
 	fi
-	eval "sed -i "s/${!mama}_Chr/Chr/g" $samFM &" 2>$ERROR_TMP
+	
+	cmd="sed -i "s/${!mama}_Chr/Chr/g" $samFM &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval sed cli."
@@ -1327,7 +1373,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
 	fi
 
-	eval "sed -i "s/${!papa}_mitochondria/mitochondria/g" $samFP &" 2>$ERROR_TMP
+	cmd="sed -i "s/${!papa}_mitochondria/mitochondria/g" $samFP &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval sed cli."
@@ -1347,8 +1395,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
 	fi
 
-	eval "sed -i "s/${!mama}_mitochondria/mitochondria/g" $samFM &" 2>$ERROR_TMP
-
+	cmd="sed -i "s/${!mama}_mitochondria/mitochondria/g" $samFM &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval sed cli."
@@ -1378,7 +1427,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
 	fi
 
-	eval "sed -i "s/${!papa}_chloroplast/chloroplast/g" $samFP &" 2>$ERROR_TMP
+	cmd="sed -i "s/${!papa}_chloroplast/chloroplast/g" $samFP &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval sed cli."
@@ -1398,7 +1449,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
 	fi
 
-	eval "sed -i "s/${!mama}_chloroplast/chloroplast/g" $samFM &" 2>$ERROR_TMP
+	cmd="sed -i "s/${!mama}_chloroplast/chloroplast/g" $samFM &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval sed cli."
@@ -1428,7 +1481,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
 	fi
 
-	eval "samstat -f sam $samFP -n ${samFP%.*}_stat_after_renaming &" 2>$ERROR_TMP
+	cmd="samstat -f sam $samFP -n ${samFP%.*}_stat_after_renaming &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
@@ -1448,7 +1503,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
 	fi
 
-	eval "samstat -f sam $samFM -n ${samFM%.*}_stat_after_renaming &" 2>$ERROR_TMP
+	cmd="samstat -f sam $samFM -n ${samFM%.*}_stat_after_renaming &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samstat cli."
@@ -1478,7 +1535,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFP file does exist and is not empty."
 	fi
 
-	eval "samtools view -bS ${samFP} >${samFP%.*}.bam &" 2>$ERROR_TMP
+	cmd="samtools view -bS ${samFP} >${samFP%.*}.bam &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
@@ -1498,7 +1557,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $samFM file does exist and is not empty."
 	fi
 
-	eval "samtools view -bS ${samFM} >${samFM%.*}.bam &" 2>$ERROR_TMP
+	cmd="samtools view -bS ${samFM} >${samFM%.*}.bam &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools view cli."
@@ -1528,7 +1589,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $bamFP file does exist and is not empty."
 	fi
 
-	eval "samtools sort ${bamFP} ${bamFP%.*}_sorted &" 2>$ERROR_TMP
+	cmd="samtools sort ${bamFP} ${bamFP%.*}_sorted &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
@@ -1548,7 +1611,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $bamFM file does exist and is not empty."
 	fi
 
-	eval "samtools sort ${bamFM} ${bamFM%.*}_sorted &" 2>$ERROR_TMP
+	cmd="samtools sort ${bamFM} ${bamFM%.*}_sorted &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools sort cli."
@@ -1578,7 +1643,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $bamFP file does exist and is not empty."
 	fi
 
-	eval "samtools index ${bamFP} ${bamFP}.bai &" 2>$ERROR_TMP
+	cmd="samtools index ${bamFP} ${bamFP}.bai &"
+	logger_info "[Analysis] $cmd" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools index cli."
@@ -1598,7 +1665,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Analysis] $bamFM file does exist and is not empty."
 	fi
 
-	eval "samtools index ${bamFM} ${bamFM}.bai &" 2>$ERROR_TMP
+	cmd="samtools index ${bamFM} ${bamFM}.bai &"
+	logger_info "[Analysis] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Analysis] An error occured while eval samtools index cli."
@@ -1724,6 +1793,7 @@ vcf_files=($(find $OUTPUT_DIR -name "*_sorted.vcf"))
 for vcf in "${vcf_files[@]}"; do
 	logger_debug "[Analysis] Current vcf file: $vcf"
 	sed_cmd="sed -i '1,3d' $vcf &"
+	logger_info "[Analysis] $sed_cmd" 
 	eval "$sed_cmd" 2>>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1759,6 +1829,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	reformat_cmd_papa="reformat_vcf ${vcf_papa} > ${vcf_papa%.*}_reformated.vcf &"
+	logger_info "[Analysis] $reformat_cmd_papa"
 	eval "$reformat_cmd_papa" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -1780,6 +1851,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	reformat_cmd_mama="reformat_vcf ${vcf_mama} > ${vcf_mama%.*}_reformated.vcf &"
+	logger_info "[Analysis] $reformat_cmd_mama"
 	eval "$reformat_cmd_mama" 2>$ERROR_TMP	
 	pid=$!
 	rtrn=$?
@@ -1818,6 +1890,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	for n in "${Chr_nums[@]}"; do
 		grep_cmd="grep -e "^Chr$n" ${vcf_papa} >${vcf_papa%.*}_Chr${n}.vcf &"
+		logger_info "[Analysis] $grep_cmd"
 		eval "$grep_cmd" 2>>$ERROR_TMP
 		pid=$!
 		rtrn=$?
@@ -1845,6 +1918,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	for n in "${Chr_nums[@]}"; do
 		grep_cmd="grep -e "^Chr$n" ${vcf_mama} >${vcf_mama%.*}_Chr${n}.vcf &"
+		logger_info "[Analysis] $grep_cmd"
 		eval "$grep_cmd" 2>>$ERROR_TMP
 		pid=$!
 		rtrn=$?
