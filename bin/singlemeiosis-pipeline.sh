@@ -334,6 +334,7 @@ logger_info "[Check config: session user config file] OK Session user config fil
 #==========================================
 
 ## SET GENOME FASTA FILES PATH
+# TODO: should have been samtools genome indexes path
 
 logger_info "[Genome sequences and index paths] set path variables ..."
 ### set genome fasta paths for the papa and mama genomes
@@ -635,6 +636,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samF file does exist and is not empty."
+		LN=$(samtools view -c -S $samF)
+		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 done
 
@@ -647,7 +650,9 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*.sam)
-	eval "get_mapped_reads_w_header $samF >${samF%.*}_mapped.sam 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="get_mapped_reads_w_header $samF >${samF%.*}_mapped.sam 2>$CURRENT_FILTERING_ERROR &"
+	logger_debug "[Filtering] $cmd"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval get_mapped_reads cli."
@@ -683,6 +688,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samF file does exist and is not empty."
+		LN=$(samtools view -c -S $samF)
+		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 done
 
@@ -695,7 +702,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
-	eval "samtools view -H -S $samF >${samF}.hdr.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="samtools view -H -S $samF >${samF}.hdr.tmp 2>$CURRENT_FILTERING_ERROR &"
+	eval "$cmd"	2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval samtools view cli."
@@ -721,7 +729,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 	CURRENT_FILTERING_ERROR=$OUTPUT_DIR/${!s}/${!s}_filtering_err.log
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
-	eval "filter_on_mapq $samF ${!mapq_th} >${samF%.*}_MAPQ.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="filter_on_mapq $samF ${!mapq_th} >${samF%.*}_MAPQ.tmp 2>$CURRENT_FILTERING_ERROR &" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval filter_on_mapq cli."
@@ -751,9 +760,12 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samF file does exist and is not empty."
+		LN=$(wc -l $samF | awk '{print $1}')
+		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 
-	eval "get_unique_matches $samF >>${samF%.*}_X0.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="get_unique_matches $samF >>${samF%.*}_X0.tmp 2>$CURRENT_FILTERING_ERROR &" 
+	eval "$cmd" 2>$ERROR_TMP	
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval get_unique_matches cli."
@@ -783,9 +795,12 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samF file does exist and is not empty."
+		LN=$(wc -l $samF | awk '{print $1}')
+		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 
-	eval "get_no_mismatched_aln $samF >>${samF%.*}_XM.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="get_no_mismatched_aln $samF >>${samF%.*}_XM.tmp 2>$CURRENT_FILTERING_ERROR &"
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval get_no_mismatched_aln cli."
@@ -815,9 +830,12 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samF file does exist and is not empty."
+		LN=$(wc -l $samF | awk '{print $1}')
+		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 
-	eval "get_no_gapped_aln $samF >>${samF%.*}_Xo.tmp 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="get_no_gapped_aln $samF >>${samF%.*}_Xo.tmp 2>$CURRENT_FILTERING_ERROR &" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval get_no_gapped_aln cli."
@@ -847,6 +865,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samH file does exist and is not empty."
+		LN=$(wc -l $samH | awk '{print $1}')
+		logger_debug "[Filtering] $samH LN=$LN"
 	fi
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_Xo.tmp)
@@ -856,9 +876,12 @@ for s in "${SAMPLES_STACK[@]}"; do
 		exit 1
 	else
 		logger_debug "[Filtering] $samF file does exist and is not empty."
+		LN=$(wc -l $samF | awk '{print $1}')
+		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 
-	eval "cat $samH $samF > ${samF%.*}.sam 2>$CURRENT_FILTERING_ERROR &" 2>$ERROR_TMP
+	cmd="cat $samH $samF > ${samF%.*}.sam 2>$CURRENT_FILTERING_ERROR &" 
+	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
 	eval_failed_msg="[Filtering] An error occured while eval cat cli."
