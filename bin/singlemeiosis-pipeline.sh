@@ -651,7 +651,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*.sam)
 	cmd="get_mapped_reads_w_header $samF >${samF%.*}_mapped.sam 2>$CURRENT_FILTERING_ERROR &"
-	logger_debug "[Filtering] $cmd"
+	logger_info "[Filtering] $cmd"
 	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -703,6 +703,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
 	cmd="samtools view -H -S $samF >${samF}.hdr.tmp 2>$CURRENT_FILTERING_ERROR &"
+	logger_info "[Filtering] $cmd"
 	eval "$cmd"	2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -730,6 +731,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 
 	samF=$(ls $OUTPUT_DIR/${!s}/*_mapped.sam)
 	cmd="filter_on_mapq $samF ${!mapq_th} >${samF%.*}_MAPQ.tmp 2>$CURRENT_FILTERING_ERROR &" 
+	logger_info "[Filtering] $cmd"
 	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -764,7 +766,8 @@ for s in "${SAMPLES_STACK[@]}"; do
 		logger_debug "[Filtering] $samF LN=$LN"
 	fi
 
-	cmd="get_unique_matches $samF >>${samF%.*}_X0.tmp 2>$CURRENT_FILTERING_ERROR &" 
+	cmd="get_unique_matches $samF >>${samF%.*}_X0.tmp 2>$CURRENT_FILTERING_ERROR &"
+	logger_info "[Filtering] $cmd" 
 	eval "$cmd" 2>$ERROR_TMP	
 	pid=$!
 	rtrn=$?
@@ -800,6 +803,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	cmd="get_no_mismatched_aln $samF >>${samF%.*}_XM.tmp 2>$CURRENT_FILTERING_ERROR &"
+	logger_info "[Filtering] $cmd"
 	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -835,6 +839,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	cmd="get_no_gapped_aln $samF >>${samF%.*}_Xo.tmp 2>$CURRENT_FILTERING_ERROR &" 
+	logger_info "[Filtering] $cmd"
 	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
@@ -881,6 +886,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	fi
 
 	cmd="cat $samH $samF > ${samF%.*}.sam 2>$CURRENT_FILTERING_ERROR &" 
+	logger_info "[Filtering] $cmd"
 	eval "$cmd" 2>$ERROR_TMP
 	pid=$!
 	rtrn=$?
