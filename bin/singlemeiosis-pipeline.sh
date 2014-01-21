@@ -393,7 +393,7 @@ fi
 logger_debug "[Genome alias] ${ga_mama}=${!ga_mama}"
 
 eval "$(toupper ${NAMESPACE}_paths)_mama_samtools_index=${!genome_index_path}/${!genome_samtools_path}/$(get_tool_version samtools)/${!ga_mama}/${!ga_mama}"
-declare -r mama_samtools_index_path=$(toupper ${NAMESPACE}_paths)_papa_samtools_index
+declare -r mama_samtools_index_path=$(toupper ${NAMESPACE}_paths)_mama_samtools_index
 if [[ ! -s ${!mama_samtools_index_path} ]]; then 
 	logger_fatal "An error occured while setting genome samtools index path for mama genome."
 	exit 1
