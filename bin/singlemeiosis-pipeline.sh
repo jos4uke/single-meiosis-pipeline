@@ -333,10 +333,8 @@ logger_info "[Check config: session user config file] OK Session user config fil
 # GENOMES AND INDEX PATH
 #==========================================
 
-## SET GENOME FASTA FILES PATH
-# TODO: should have been samtools genome indexes path
-
 logger_info "[Genome sequences and index paths] set path variables ..."
+
 ### set genome fasta paths for the papa and mama genomes
 declare -r genome_base_path=$(toupper ${NAMESPACE}_paths)_GENOMES_BASE_PATH
 
@@ -346,6 +344,22 @@ if [[ -z ${!genome_base_path} && ! -d ${!genome_base_path} ]]; then
 fi
 logger_debug "[Genome base path] ${genome_base_path}=${!genome_base_path}"
 
+declare -r genome_index_path=$(toupper ${NAMESPACE}_paths)_INDEXES_BASE_PATH
+if [[ -z ${!genome_index_path} ]]; then 
+	logger_fatal "An error occured while setting genome indexes path variable."
+	exit 1
+fi
+logger_debug "[Genome index path] ${genome_index_path}=${!genome_index_path}"
+
+## SET GENOME SAMTOOLS INDEX PATH RELATIVE TO CURRENT VERSION/TOOL
+
+declare -r genome_samtools_path=$(toupper ${NAMESPACE}_paths)_SAMTOOLS_INDEXES
+if [[ -z ${!genome_samtools_path} ]]; then 
+	logger_fatal "An error occured while setting genome samtools indexes path variable."
+	exit 1
+fi
+logger_debug "[Genome index path] ${genome_samtools_path}=${!genome_samtools_path}"
+
 #### papa
 declare -r ga_papa=$(toupper ${NAMESPACE}_genome_alias )_papa
 if [[ -z ${!ga_papa} ]]; then 
@@ -354,13 +368,18 @@ if [[ -z ${!ga_papa} ]]; then
 fi
 logger_debug "[Genome alias] ${ga_papa}=${!ga_papa}"
 
-eval "$(toupper ${NAMESPACE}_paths)_papa_fasta=${!genome_base_path}/${!ga_papa}/$(ls ${!genome_base_path}/${!ga_papa} | grep -e "${!ga_papa}\.m*fas*$")"
-declare -r ga_papa_fasta=$(toupper ${NAMESPACE}_paths)_papa_fasta
-if [[ ! -s ${!ga_papa_fasta} ]]; then 
-	logger_fatal "An error occured while setting genome alias sequence path for papa genome."
+eval "$(toupper ${NAMESPACE}_paths)_papa_samtools_index=${!genome_index_path}/${!genome_samtools_path}/$(get_tool_version samtools)/${!ga_papa}/${!ga_papa}"
+declare -r papa_samtools_index_path=$(toupper ${NAMESPACE}_paths)_papa_samtools_index
+if [[ ! -s ${!papa_samtools_index_path} ]]; then 
+	logger_fatal "An error occured while setting genome samtools index path for papa genome."
 	exit 1
 fi
-logger_info "[Genome alias sequence path] ${ga_papa_fasta}=${!ga_papa_fasta}"
+IDX_FILES=($(ls ${!papa_samtools_index_path}*))
+if [[ ${#IDX_FILES[@]} -le 0 ]]; then
+	logger_fatal "An error occured while checking genome samtools index files for the papa genome."
+	exit 1
+fi
+logger_info "[Genome samtools index path] ${papa_samtools_index_path}=${!papa_samtools_index_path}"
 
 # call papa directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_papa_fasta"
@@ -373,13 +392,18 @@ if [[ -z ${!ga_mama} ]]; then
 fi
 logger_debug "[Genome alias] ${ga_mama}=${!ga_mama}"
 
-eval "$(toupper ${NAMESPACE}_paths)_mama_fasta=${!genome_base_path}/${!ga_mama}/$(ls ${!genome_base_path}/${!ga_mama} | grep -e "${!ga_mama}\.m*fas*$")"
-declare -r ga_mama_fasta=$(toupper ${NAMESPACE}_paths)_mama_fasta
-if [[ ! -s ${!ga_mama_fasta} ]]; then 
-	logger_fatal "An error occured while setting genome alias sequence path for mama genome."
+eval "$(toupper ${NAMESPACE}_paths)_mama_samtools_index=${!genome_index_path}/${!genome_samtools_path}/$(get_tool_version samtools)/${!ga_mama}/${!ga_mama}"
+declare -r mama_samtools_index_path=$(toupper ${NAMESPACE}_paths)_papa_samtools_index
+if [[ ! -s ${!mama_samtools_index_path} ]]; then 
+	logger_fatal "An error occured while setting genome samtools index path for mama genome."
 	exit 1
 fi
-logger_info "[Genome alias sequence path] ${ga_mama_fasta}=${!ga_mama_fasta}"
+IDX_FILES=($(ls ${!mama_samtools_index_path}*))
+if [[ ${#IDX_FILES[@]} -le 0 ]]; then
+	logger_fatal "An error occured while checking genome samtools index files for the mama genome."
+	exit 1
+fi
+logger_info "[Genome samtools index path] ${mama_samtools_index_path}=${!mama_samtools_index_path}"
 
 # call mama directly
 #eval echo -e \$"$(toupper ${NAMESPACE}_paths)_mama_fasta"
@@ -387,13 +411,6 @@ logger_info "[Genome alias sequence path] ${ga_mama_fasta}=${!ga_mama_fasta}"
 ## SET GENOME BWA INDEX PATH RELATIVE TO CURRENT VERSION/TOOL
 
 #### set current tool version index for the papamama genome
-declare -r genome_index_path=$(toupper ${NAMESPACE}_paths)_INDEXES_BASE_PATH
-if [[ -z ${!genome_index_path} ]]; then 
-	logger_fatal "An error occured while setting genome indexes path variable."
-	exit 1
-fi
-logger_debug "[Genome index path] ${genome_index_path}=${!genome_index_path}"
-
 declare -r genome_bwa_path=$(toupper ${NAMESPACE}_paths)_BWA_INDEXES
 if [[ -z ${!genome_bwa_path} ]]; then 
 	logger_fatal "An error occured while setting genome bwa indexes path variable."
@@ -1729,7 +1746,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	logger_debug "[Analysis] $cmd2 options: ${opts_bv_papa}"
 
 	# build cli
-	samtools_mpileup_cli_papa="$cmd1 ${opts_sm_papa} -f ${!ga_papa_fasta} ${bamFP}"
+	samtools_mpileup_cli_papa="$cmd1 ${opts_sm_papa} -f ${!papa_samtools_index_path} ${bamFP}"
 	bcftools_view_cli_papa="$cmd2 ${opts_bv_papa} -"
 	complete_papa_cli="${samtools_mpileup_cli_papa} | ${bcftools_view_cli_papa} >${bamFP%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_PAPA &"
 
@@ -1772,7 +1789,7 @@ for s in "${SAMPLES_STACK[@]}"; do
 	logger_debug "[Analysis] $cmd2 options: ${opts_bv_mama}"
 
 	# build cli
-	samtools_mpileup_cli_mama="$cmd1 ${opts_sm_mama} -f ${!ga_mama_fasta} ${bamFM}"
+	samtools_mpileup_cli_mama="$cmd1 ${opts_sm_mama} -f ${!mama_samtools_index_path} ${bamFM}"
 	bcftools_view_cli_mama="$cmd2 ${opts_bv_mama} -"
 	complete_mama_cli="${samtools_mpileup_cli_mama} | ${bcftools_view_cli_mama} >${bamFM%.*}.vcf  2>$CURRENT_ANALYSIS_ERROR_MAMA &"
 
