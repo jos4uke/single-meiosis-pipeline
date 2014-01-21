@@ -98,7 +98,7 @@ appender_exists console && logger_debug "Console appender is enabled." || logger
 ### LOAD LIB ###
 
 # bash-common lib
-[[ $VERSION -eq "dev" ]] && LIB_PATH=$(realpath $(dirname $0))/../../bash-common/share/bash-common/lib/bash-common_lib.inc || LIB_PATH=/usr/local/share/bash-common/lib/bash-common_lib.inc
+[[ $VERSION == "dev" ]] && LIB_PATH=$(realpath $(dirname $0))/../../bash-common/share/bash-common/lib/bash-common_lib.inc || LIB_PATH=/usr/local/share/bash-common/lib/bash-common_lib.inc
 
 logger_debug "[Library] Loading $LIB_PATH"
 . $LIB_PATH
@@ -108,7 +108,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # singlemeiosis lib
-[[ $VERSION -eq "dev" ]] && LIB_PATH=$(realpath $(dirname $0))/../share/singlemeiosis-pipeline/lib/singlemeiosis-pipeline_lib.inc || LIB_PATH=/usr/local/share/singlemeiosis-pipeline/lib/singlemeiosis-pipeline_lib.inc
+[[ $VERSION == "dev" ]] && LIB_PATH=$(realpath $(dirname $0))/../share/singlemeiosis-pipeline/lib/singlemeiosis-pipeline_lib.inc || LIB_PATH=/usr/local/share/singlemeiosis-pipeline/lib/singlemeiosis-pipeline_lib.inc
 
 logger_debug "[Library] Loading $LIB_PATH"
 . $LIB_PATH
