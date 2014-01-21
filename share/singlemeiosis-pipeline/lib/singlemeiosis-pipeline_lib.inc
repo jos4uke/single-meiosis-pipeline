@@ -6,7 +6,7 @@
 
 # Date: 2013-10-15
 
-local VERSION="beta"
+# VERSION="beta"
 
 ###
 ### Genomes Listing
