@@ -36,7 +36,7 @@
 
 # Date: 2013-10-11
 
-declare -r VERSION="dev"
+declare -r VERSION="beta"
 
 
 ########################
