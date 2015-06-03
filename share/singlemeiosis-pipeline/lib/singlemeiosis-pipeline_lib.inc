@@ -6,7 +6,7 @@
 
 # Date: 2013-10-15
 
-# VERSION="RC1"
+# VERSION="0.2"
 
 ###
 ### Genomes Listing
